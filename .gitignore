@@ -40,7 +40,9 @@
 # debug information files
 *.dwo
 
-FastRobotics_ble
+FastRobots_ble/
+
+FastRobotics_ble/
 
 .DS_Store
 

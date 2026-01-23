@@ -8,3 +8,4 @@ class CMD(Enum):
     DANCE = 4
     SET_VEL = 5
     GET_TIME_MILLIS = 6
+    SEND_TIME_DATA = 7

@@ -32,9 +32,12 @@ long interval = 500;
 static long previousMillis = 0;
 unsigned long currentMillis = 0;
 
+#define TIME_ARR_SIZE 5//2048
+unsigned long time_values[TIME_ARR_SIZE];
+unsigned long time_index = 0;
 
-int time_values[512];
-int temp_values[512];
+int temp_values[TIME_ARR_SIZE];
+int temp_index = 0;
 
 //////////// Global Variables ////////////
 
@@ -47,6 +50,7 @@ enum CommandTypes
     DANCE,
     SET_VEL,
     GET_TIME_MILLIS,
+    SEND_TIME_DATA,
 };
 
 void
@@ -182,6 +186,34 @@ handle_command()
             tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
             break;
+        case SEND_TIME_DATA:
+
+            Serial.println("Sending time data!");
+
+            for(int i = 0; i < TIME_ARR_SIZE; i++){
+                snprintf(char_arr, MAX_MSG_SIZE, "%d:%lu", i, time_values[i]);
+
+                tx_estring_value.clear();
+                tx_estring_value.append(char_arr);
+                tx_characteristic_string.writeValue(tx_estring_value.c_str());
+                delay(10);
+
+                //TODO ack? or maybe send a chunk instead of individual msg
+
+            }
+
+            Serial.println("Finished sending array");
+
+
+            snprintf(char_arr, MAX_MSG_SIZE, "end");
+
+            tx_estring_value.clear();
+            tx_estring_value.append(char_arr);
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            Serial.println("Finished time transmission");
+
+            break;
 
         /* 
          * The default case may not capture all types of invalid commands.
@@ -255,7 +287,18 @@ void send_time(){
 }
 
 void collect_time(){
- //TODO finish this
+
+    if(time_index < TIME_ARR_SIZE) { 
+        time_values[time_index] = millis();
+        //Serial.print("Collected time at t: ");
+        //Serial.println(time_values[time_index]);
+        time_index++;
+    } else { // Overflows start overwriting old data
+        time_index = 0;
+        time_values[time_index] = millis();
+        //Serial.println("Time values overflowed");
+    }
+
 }
 
 void
@@ -298,6 +341,7 @@ loop()
 
         // While central is connected
         while (central.connected()) {
+            BLE.poll();
             // Send data
             write_data();
 
@@ -306,6 +350,9 @@ loop()
 
             // Send current time
             //send_time();
+
+            // Collect times
+            collect_time();
 
         }
 
