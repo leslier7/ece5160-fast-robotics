@@ -186,34 +186,71 @@ handle_command()
             tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
             break;
-        case SEND_TIME_DATA:
+        case SEND_TIME_DATA: {
 
             Serial.println("Sending time data!");
 
-            for(int i = 0; i < TIME_ARR_SIZE; i++){
-                snprintf(char_arr, MAX_MSG_SIZE, "%d:%lu", i, time_values[i]);
+            EString temp_string = EString();
 
-                tx_estring_value.clear();
-                tx_estring_value.append(char_arr);
-                tx_characteristic_string.writeValue(tx_estring_value.c_str());
-                delay(10);
+            
+
+            for(int i = 0; i < TIME_ARR_SIZE; i++){
+
+                snprintf(char_arr, MAX_MSG_SIZE, "%lu", time_values[i]);
+                temp_string.append(char_arr);
+
+                if(i != TIME_ARR_SIZE-1){ //Append comma after each string except in the last case
+                    temp_string.append(",");
+                }
+
+                // EString msg_string = EString();
+                // msg_string.append(time_values[i]);
+
+                // if(temp_string.get_length() + msg_string.get_length() + 1 < MAX_MSG_SIZE){
+                //     temp_string.append(time_values[i]);
+                //     if(i != TIME_ARR_SIZE-1){
+                //         temp_string.append(",");
+                //     }
+                // }
+
+                // snprintf(char_arr, MAX_MSG_SIZE, "%d:%lu", i, time_values[i]);
+
+                // tx_estring_value.clear();
+                // tx_estring_value.append(char_arr);
+                // tx_characteristic_string.writeValue(tx_estring_value.c_str());
+                // delay(10);
 
                 //TODO ack? or maybe send a chunk instead of individual msg
 
             }
 
+            Serial.print("Temp string length: ");
+            Serial.println(temp_string.get_length());
+            Serial.print("Temp string: ");
+            Serial.println(temp_string.c_str());
+
+            if (temp_string.get_length() < MAX_MSG_SIZE){
+                temp_string.append(",end");
+                // char_arr = temp_string.c_str();
+
+                //tx_estring_value.clear();
+                //tx_estring_value.append(temp_string.c_str());
+                tx_characteristic_string.writeValue(temp_string.c_str());
+            } //TODO figure out how to break it up
+
             Serial.println("Finished sending array");
 
 
-            snprintf(char_arr, MAX_MSG_SIZE, "end");
+            // snprintf(char_arr, MAX_MSG_SIZE, "end");
 
-            tx_estring_value.clear();
-            tx_estring_value.append(char_arr);
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+            // tx_estring_value.clear();
+            // tx_estring_value.append(char_arr);
+            // tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
-            Serial.println("Finished time transmission");
+            // Serial.println("Finished time transmission");
 
             break;
+        }
 
         /* 
          * The default case may not capture all types of invalid commands.
