@@ -32,7 +32,7 @@ long interval = 500;
 static long previousMillis = 0;
 unsigned long currentMillis = 0;
 
-#define TIME_ARR_SIZE 5//2048
+#define TIME_ARR_SIZE 10
 unsigned long time_values[TIME_ARR_SIZE];
 unsigned long time_index = 0;
 
@@ -62,6 +62,7 @@ handle_command()
 
     bool success;
     int cmd_type = -1;
+    char char_arr[MAX_MSG_SIZE];
 
     // Get robot command type (an integer)
     /* NOTE: THIS SHOULD ALWAYS BE CALLED BEFORE get_next_value()
@@ -147,8 +148,6 @@ handle_command()
          */
         case ECHO:
 
-            char char_arr[MAX_MSG_SIZE];
-
             // Extract the next value from the command string as a character array
             success = robot_cmd.get_next_value(char_arr);
             if (!success)
@@ -192,8 +191,6 @@ handle_command()
 
             EString temp_string = EString();
 
-            
-
             for(int i = 0; i < TIME_ARR_SIZE; i++){
 
                 snprintf(char_arr, MAX_MSG_SIZE, "%lu", time_values[i]);
@@ -203,25 +200,6 @@ handle_command()
                     temp_string.append(",");
                 }
 
-                // EString msg_string = EString();
-                // msg_string.append(time_values[i]);
-
-                // if(temp_string.get_length() + msg_string.get_length() + 1 < MAX_MSG_SIZE){
-                //     temp_string.append(time_values[i]);
-                //     if(i != TIME_ARR_SIZE-1){
-                //         temp_string.append(",");
-                //     }
-                // }
-
-                // snprintf(char_arr, MAX_MSG_SIZE, "%d:%lu", i, time_values[i]);
-
-                // tx_estring_value.clear();
-                // tx_estring_value.append(char_arr);
-                // tx_characteristic_string.writeValue(tx_estring_value.c_str());
-                // delay(10);
-
-                //TODO ack? or maybe send a chunk instead of individual msg
-
             }
 
             Serial.print("Temp string length: ");
@@ -229,15 +207,19 @@ handle_command()
             Serial.print("Temp string: ");
             Serial.println(temp_string.c_str());
 
+            int tx_result = -1;
+
             if (temp_string.get_length() < MAX_MSG_SIZE){
                 temp_string.append(",end");
                 // char_arr = temp_string.c_str();
 
                 //tx_estring_value.clear();
                 //tx_estring_value.append(temp_string.c_str());
-                tx_characteristic_string.writeValue(temp_string.c_str());
+                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
             } //TODO figure out how to break it up
 
+            Serial.print("Serial Transmission Result: ");
+            Serial.println(tx_result);
             Serial.println("Finished sending array");
 
 
