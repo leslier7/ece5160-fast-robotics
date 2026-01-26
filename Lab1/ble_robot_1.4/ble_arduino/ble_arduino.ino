@@ -51,6 +51,7 @@ enum CommandTypes
     SET_VEL,
     GET_TIME_MILLIS,
     SEND_TIME_DATA,
+    GET_TEMP_READINGS,
 };
 
 void
@@ -234,6 +235,45 @@ handle_command()
             break;
         }
 
+        case GET_TEMP_READINGS: {
+            Serial.println("Sending temp readings");
+
+            EString temp_string = EString();
+
+            for(int i = 0; i < TIME_ARR_SIZE; i++){
+
+                snprintf(char_arr, MAX_MSG_SIZE, "%lu:%d", time_values[i], temp_values[i]);
+                temp_string.append(char_arr);
+
+                if(i != TIME_ARR_SIZE-1){ //Append comma after each string except in the last case
+                    temp_string.append(",");
+                }
+
+            }
+
+            Serial.print("Temp string length: ");
+            Serial.println(temp_string.get_length());
+            Serial.print("Temp string: ");
+            Serial.println(temp_string.c_str());
+
+            int tx_result = -1;
+
+            if (temp_string.get_length() < MAX_MSG_SIZE){
+                temp_string.append(",end");
+                // char_arr = temp_string.c_str();
+
+                //tx_estring_value.clear();
+                //tx_estring_value.append(temp_string.c_str());
+                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            } //TODO figure out how to break it up
+
+            Serial.print("Serial Transmission Result: ");
+            Serial.println(tx_result);
+            Serial.println("Finished sending array");
+
+            break;
+        }
+
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
@@ -320,6 +360,20 @@ void collect_time(){
 
 }
 
+void collect_temps(){
+    collect_time(); //Collect time so it corresponds to the temp
+    if(temp_index < TIME_ARR_SIZE) { 
+        temp_values[temp_index] = getTempDegC();
+        //Serial.print("Collected time at t: ");
+        //Serial.println(time_values[time_index]);
+        temp_index++;
+    } else { // Overflows start overwriting old data
+        temp_index = 0;
+        temp_values[temp_index] = getTempDegC();
+        //Serial.println("Time values overflowed");
+    }
+}
+
 void
 write_data()
 {
@@ -370,8 +424,8 @@ loop()
             // Send current time
             //send_time();
 
-            // Collect times
-            collect_time();
+            // Collect temps with times
+            collect_temps();
 
         }
 

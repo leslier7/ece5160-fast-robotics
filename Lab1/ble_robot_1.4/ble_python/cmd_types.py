@@ -9,3 +9,4 @@ class CMD(Enum):
     SET_VEL = 5
     GET_TIME_MILLIS = 6
     SEND_TIME_DATA = 7
+    GET_TEMP_READINGS = 8
