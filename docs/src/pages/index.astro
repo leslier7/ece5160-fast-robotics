@@ -6,7 +6,10 @@ import { ArrowRight, Mail, Github, Linkedin } from 'lucide-react';
 import { SITE } from '../config';
 import headshot from '../assets/headshot.jpg';
 
-// Use activities as your lab reports
+const base = import.meta.env.BASE_URL.endsWith('/') 
+  ? import.meta.env.BASE_URL.slice(0, -1) 
+  : import.meta.env.BASE_URL;
+
 const labs = (await getCollection('labs'))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, 3);
@@ -59,7 +62,7 @@ const labs = (await getCollection('labs'))
           </div>
           
           <a 
-            href="/activities" 
+            href={`${base}/labs`} 
             class="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
           >
             {SITE.hero.action}

@@ -1,6 +1,5 @@
 import heroImage from './assets/hero-real.jpg';
 
-const BASE = '/ece5160-fast-robotics';
 
 export const SITE = {
   website: 'https://leslier7.github.io/ece5160-fast-robotics/', // Replace with your actual deployed URL
@@ -15,8 +14,8 @@ export const SITE = {
   // Lab Info
   labName: 'ECE 5160 - Fast Robotics',
   university: 'Cornell University',
-  logo: `${BASE}/assets/cornell_logo.svg`,
-  avatar: `${BASE}/assets/cornell_logo.svg`,
+  logo: `/assets/cornell_logo.svg`,
+  avatar: `/assets/cornell_logo.svg`,
   email: 'rwl228@cornell.edu', // Contact email for Join Us page
   github: 'https://github.com/leslier7',
   linkedin: 'https://www.linkedin.com/in/robbie-leslie/',
@@ -32,10 +31,9 @@ export const SITE = {
 
   // Navigation
   nav: [
-    { text: 'Home', link: `${BASE}/`, key: 'home' },
-    { text: 'Labs', link: `${BASE}/labs`, key: 'labs' },
+    { text: 'Home', link: '/', key: 'home' },
+    { text: 'Labs', link: '/labs', key: 'labs' },
   ],
-
   // Custom Pages (Appended after 'Join Us')
   customPages: [
     // Example: { text: 'Alumni', link: '/alumni', key: 'alumni' }
