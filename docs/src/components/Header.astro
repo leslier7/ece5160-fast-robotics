@@ -206,5 +206,52 @@ const getIcon = (key: string) => iconMap[key] || Sparkles;
 </header>
 
 <script is:inline>
-  // ...existing code...
+  // Mobile menu functions
+  window.toggleMobileMenu = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const menu = document.getElementById('mobile-menu');
+    const btn = document.getElementById('mobile-menu-btn');
+    const iconMenu = btn.querySelector('.icon-menu');
+    const iconClose = btn.querySelector('.icon-close');
+    
+    if (menu.style.display === 'none' || menu.style.display === '') {
+      menu.style.display = 'flex';
+      menu.setAttribute('aria-hidden', 'false');
+      btn.setAttribute('aria-expanded', 'true');
+      iconMenu.classList.add('hidden');
+      iconClose.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    } else {
+      window.closeMobileMenu();
+    }
+  };
+
+  window.closeMobileMenu = function() {
+    const menu = document.getElementById('mobile-menu');
+    const btn = document.getElementById('mobile-menu-btn');
+    const iconMenu = btn.querySelector('.icon-menu');
+    const iconClose = btn.querySelector('.icon-close');
+    
+    menu.style.display = 'none';
+    menu.setAttribute('aria-hidden', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    iconMenu.classList.remove('hidden');
+    iconClose.classList.add('hidden');
+    document.body.style.overflow = '';
+  };
+
+  // Close menu on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      window.closeMobileMenu();
+    }
+  });
+
+  // Close menu when clicking outside
+  document.getElementById('mobile-menu')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+      window.closeMobileMenu();
+    }
+  });
 </script>
