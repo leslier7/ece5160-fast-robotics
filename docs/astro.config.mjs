@@ -19,6 +19,9 @@ export default defineConfig({
       assetsInlineLimit: 10240,
     }
   },
+  markdown: {
+    
+  },
 
   integrations: [react()]
 });
