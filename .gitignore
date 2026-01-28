@@ -46,6 +46,11 @@ FastRobotics_ble/
 
 .DS_Store
 
+.idea/
+.pio/
+
+*.csv
+
 # ------------------------ Python gitignore -----------------------------------
 # Byte-compiled / optimized / DLL files
 __pycache__/
