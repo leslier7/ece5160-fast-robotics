@@ -38,4 +38,13 @@ The objective of this lab was to learn how to work with the Artemis Redboard Nan
   <figcaption>Figure 2: Temperature Sensor Output</figcaption>
 </figure>
 
+- Once the temperature sensor was working, I ran the *MicrophoneOutput* example to demonstrate that the onboard microphone was working. This demo program outputs the highest frequency detected by the microphone. The results are shown in Figure 3
 
+<figure>
+  <img src="/ece5160-fast-robotics/assets/lab1/microphone_read_example.png" alt="">
+  <figcaption>Figure 3: Microphone Output</figcaption>
+</figure>
+
+- Because I am an ECE5160 student, I had an extra task for Lab 1A. I had to create a simple electronic tuner using the microphone. The program had to detect three frequencies and print the corresponding musical note.
+
+#### TODO put the output and a code snippet here
