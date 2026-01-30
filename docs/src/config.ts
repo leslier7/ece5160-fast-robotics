@@ -26,7 +26,7 @@ export const SITE = {
     subtitle: 'Welcome to my ECE 5160 Fast Robotics portfolio. Here you\'ll find my lab reports.',
     action: 'View Labs',
     image: heroImage,
-    about: `I'm a MEng student in the Electrical and Computer Engineering department. I'm interested in robotics, embedded systems, computer architecture, IoT, and digital design generally. `
+    about: `Hi, I'm Robbie! I'm a MEng student in the Electrical and Computer Engineering department. I'm interested in robotics, microcontrollers, embedded systems, computer architecture, IoT, and digital design generally. `
   },
 
   // Navigation
