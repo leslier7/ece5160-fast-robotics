@@ -7,44 +7,95 @@ cover: "../../assets/lab1-cover.webp"
 
 ### Objective
 
-The objective of this lab was to learn how to work with the Artemis Redboard Nano microcontroller board. To do this, the lab was divided into two parts, Lab 1A covered setting up the Arduino IDE and basic microcontroller operation. Lab 1B was about how to connect the Artemis to a computer over Bluetooth, and use Python and Jupyter Notebook to send commands to the Artemis.
+The objective of this lab was to learn how to work with the Artemis Redboard Nano microcontroller board. To do this, the lab was divided into two parts:
+*   **Lab 1A** covered setting up the Arduino IDE and basic microcontroller operation.
+*   **Lab 1B** focused on connecting the Artemis to a computer over Bluetooth and using Python to send commands.
 
 ### Lab 1A
 
 #### Prelab
-
-- The prelab for Lab 1A was to install the Arduino IDE and configure it to work with the Artemis.
-- After installing the Arduino IDE, I setup and installed the SparkFun Apollo3 board manager
+The prelab for Lab 1A was to install the Arduino IDE and configure it to work with the Artemis. After installing the IDE, I set up the SparkFun Apollo3 board manager.
 
 #### In Lab
 
-- With the board manager installed, I could connect the Artemis to my computer via USB
-  - I ran into problems with this step. I was running an older version of Linux Mint (21) on my laptop, and it wouldn't detect the Artemis as a USB device.
-  - I tried to fix this by updating the CH340 driver, but even after installing it the Artemis didn't show up.
-  - To temporarily fix this issue, I switched to the Windows 11 install on my laptop where the Artemis was detected.
-  - I later tested the Artemis on my desktop running Mint 22.2, and it showed up as a USB device. I later updated my laptop's Mint install to 22, which fixed the USB problems. 
-- With the Artemis now connected properly via USB, I was ready to flash the board with the *Blink* example to ensure that the board could be programmed. I confirmed that after flashing the board, the onboard LED did blink as expected.
-- Next, I ran the *Serial* example to verify that I could send and recieve data from the Artemis over serial. The output is shown in Figure 1.
+**1. USB Connection & Troubleshooting**
+With the board manager installed, I attempted to connect the Artemis to my computer.
+
+I ran into significant driver issues during this step. My laptop, running Linux Mint 21, refused to detect the Artemis as a USB device. I attempted to update the CH340 drivers, but the board remained undetected. To proceed with the lab, I temporarily switched to a Windows 11 partition where the device was recognized immediately. Later, I confirmed that upgrading my Linux Mint install to version 22 completely resolved the USB detection problems.
+
+**2. Blink Example**
+With the connection established, I flashed the board with the *Blink* example to ensure programmability. The onboard LED blinked as expected.
+
+**3. Serial Communication**
+Next, I ran the *Serial* example to verify bidirectional communication.
 
 <figure>
-  <img src="/ece5160-fast-robotics/assets/lab1/serial_output.png" alt="">
+  <img src="/ece5160-fast-robotics/assets/lab1/serial_output.png" alt="Arduino Serial Monitor showing printf output and echo test">
   <figcaption>Figure 1: Serial output from the Artemis</figcaption>
 </figure>
 
-- After verifying the serial communication, ran the *analogRead* example to test the temperature sensor. I looked at the serial output of the data, and then held my hand on the chip to verify that the temperature would increase due to my body heat. The output of the temperature sensor is shown in Figure 2.
+**4. Analog Read (Temperature Sensor)**
+I ran the *analogRead* example to test the internal temperature sensor. I observed the serial output and verified that the temperature reading increased when I applied body heat to the chip.
 
 <figure>
   <img src="/ece5160-fast-robotics/assets/lab1/temp_analog_read.png" alt="">
   <figcaption>Figure 2: Temperature Sensor Output</figcaption>
 </figure>
 
-- Once the temperature sensor was working, I ran the *MicrophoneOutput* example to demonstrate that the onboard microphone was working. This demo program outputs the highest frequency detected by the microphone. The results are shown in Figure 3
+**5. Microphone Output**
+Finally, I ran the *MicrophoneOutput* example to demonstrate the PDM microphone functionality. This program outputs the loudest frequency detected.
 
 <figure>
   <img src="/ece5160-fast-robotics/assets/lab1/microphone_read_example.png" alt="">
   <figcaption>Figure 3: Microphone Output</figcaption>
 </figure>
 
-- Because I am an ECE5160 student, I had an extra task for Lab 1A. I had to create a simple electronic tuner using the microphone. The program had to detect three frequencies and print the corresponding musical note.
+#### Additional Task (5000-level)
+As an ECE5160 student, I had an extra task: create a simple electronic tuner using the microphone to detect C3, G3, or D4.
 
-#### TODO put the output and a code snippet here
+The program uses **Goertzel filters** on the PDM microphone data. The Goertzel algorithm is similar to an FFT but looks at specific target frequencies rather than the entire spectrum, making it efficient for detecting single notes. I implemented logic to detect notes based on spectral dominance (the note must be significantly louder than the others) and hysteresis.
+
+<figure>
+  <img src="/ece5160-fast-robotics/assets/lab1/TunerOutput.png" alt="">
+  <figcaption>Figure 4: Electronic Tuner Output</figcaption>
+</figure>
+
+<details>
+<summary>Goertzel Filter Code (click to expand)</summary>
+
+```cpp
+// Code generated by ChatGPT
+float goertzel_power_exact(const int16_t* x, int N, float f0, float fs)
+{
+    float w = 2.0f * PI * f0 / fs;
+    float coeff = 2.0f * cosf(w);
+
+    float q0 = 0, q1 = 0, q2 = 0;
+    for (int n = 0; n < N; n++) {
+        q0 = coeff * q1 - q2 + x[n];
+        q2 = q1;
+        q1 = q0;
+    }
+
+    return q1*q1 + q2*q2 - q1*q2*coeff; // power at f0
+}
+
+// Measure energy at each target note using Goertzel
+float pC3 = goertzel_power_exact(x, N, NOTE_C3, fs);
+float pG3 = goertzel_power_exact(x, N, NOTE_G3, fs);
+float pD4 = goertzel_power_exact(x, N, NOTE_D4, fs);
+
+// Detect note presence using absolute thresholds and dominance
+if (pC3 > ABS_C3) {
+    detected = NOTE_C3;              // prefer fundamental
+}
+else if (pG3 > ABS_G3 &&
+         pG3 > DOMINANCE_RATIO * (pC3 + pD4)) {
+    detected = NOTE_G3;
+}
+else if (pD4 > ABS_D4 &&
+         pD4 > DOMINANCE_RATIO * (pC3 + pG3)) {
+    detected = NOTE_D4;
+}
+```
+</details>
