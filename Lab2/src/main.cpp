@@ -14,6 +14,13 @@
 #define AD0_VAL 1
 
 ICM_20948_I2C myICM; // Create an ICM_20948_I2C object
+LowPass lp_theta = {0, 0, 0.4};
+LowPass lp_phi = {0, 0, 0.4};
+
+Attitude gyro_attitude = {0, 0, 0};
+Attitude accel_attitude = {0, 0, 0};
+
+CompFilter comp_filter = {{0,0,0}, 0.5, 0.03f};
 
 void setup() {
     SERIAL_PORT.begin(115200);
@@ -45,11 +52,40 @@ void loop() {
     if (myICM.dataReady())
     {
         myICM.getAGMT();         // The values are only updated when you call 'getAGMT'
+        const float theta = calculateTheta(&myICM);
+        const float phi = calculatePhi(&myICM);
+        updateLowPass(&lp_theta, theta);
+        updateLowPass(&lp_phi, phi);
+
         //    printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
         //printScaledAGMT(&myICM); // This function takes into account the scale settings from when the measurement was made to calculate the values with units
         //printSerialPlot(&myICM);
-        printAccelPitchRoll(&myICM);
-        delay(30);
+        //printAccelPitchRoll(&myICM);
+        //printAccelPitchRoll(lp_theta.value_n, lp_phi.value_n);
+        //printAccelPitchRollLPF(&lp_theta, &lp_phi, theta, phi);
+
+        // gyro_attitude.pitch = gyro_attitude.pitch + myICM.gyrY() * 0.03f; // Integrate gyro Y to get pitch (deg)
+        // gyro_attitude.roll = gyro_attitude.roll + myICM.gyrX() * 0.03f;  // Integrate gyro X to get roll (deg)
+        // gyro_attitude.yaw = gyro_attitude.yaw + myICM.gyrZ() * 0.03f;   // Integrate gyro Z to get yaw (deg)
+
+        updateGyroAttitude(&gyro_attitude, myICM, 0.03f);
+        updateAccelAttitude(&accel_attitude, myICM);
+
+        updateCompFilter(&comp_filter, gyro_attitude, accel_attitude);
+        printAttitude(comp_filter.comp_attitude);
+        //TODO print all three attitudes to compare
+
+        // printFormattedFloat(gyro_attitude.pitch, 5, 2);
+        // SERIAL_PORT.print(",");
+        // printFormattedFloat(gyro_attitude.roll, 5, 2);
+        // SERIAL_PORT.print(",");
+        // printFormattedFloat(gyro_attitude.yaw, 5, 2);
+        // SERIAL_PORT.print(",");
+        // SERIAL_PORT.print(millis());
+        // SERIAL_PORT.println("");
+
+        //TODO micros() is millis() for uS
+        //delay(30);
     }
     else
     {

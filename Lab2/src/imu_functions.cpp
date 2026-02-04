@@ -195,3 +195,62 @@ void printAccelPitchRoll(ICM_20948_I2C *sensor) {
   SERIAL_PORT.print(millis());
   SERIAL_PORT.println("");
 }
+
+void printAccelPitchRoll(const float theta, const float phi) {
+  printFormattedFloat(theta, 5, 2);
+  SERIAL_PORT.print(",");
+  printFormattedFloat(phi, 5, 2);
+  SERIAL_PORT.print(",");
+  SERIAL_PORT.print(millis());
+  SERIAL_PORT.println("");
+}
+
+void printAccelPitchRollLPF(LowPass *lp_theta, LowPass *lp_phi, float theta, float phi) {
+  // Print regular values
+  printFormattedFloat(theta, 5, 2);
+  SERIAL_PORT.print(",");
+  printFormattedFloat(phi, 5, 2);
+  SERIAL_PORT.print(",");
+  // Print Low Pass values
+  printFormattedFloat(lp_theta->value_n, 5, 2);
+  SERIAL_PORT.print(",");
+  printFormattedFloat(lp_phi->value_n, 5, 2);
+  SERIAL_PORT.print(",");
+  SERIAL_PORT.print(millis());
+  SERIAL_PORT.println("");
+
+}
+
+void updateLowPass(LowPass *filter, float new_value) {
+    filter->value_n = filter->alpha * new_value + (1 - filter->alpha) * filter->value_n_1;
+    filter->value_n_1 = filter->value_n;
+}
+
+void updateGyroAttitude(Attitude *attitude, ICM_20948_I2C &sensor, const float dt) {
+    attitude->pitch += sensor.gyrY() * dt; // Integrate gyro Y to get pitch (deg)
+    attitude->roll += sensor.gyrX() * dt;  // Integrate gyro X to get roll (deg)
+    attitude->yaw += sensor.gyrZ() * dt;   // Integrate gyro Z to get yaw (deg)
+}
+
+void updateAccelAttitude(Attitude *attitude, ICM_20948_I2C &sensor) {
+    attitude->pitch = calculateTheta(&sensor); //pitch (in deg)
+    attitude->roll = calculatePhi(&sensor); // roll (in deg)
+    // Yaw cannot be obtained from accelerometer
+}
+
+void updateCompFilter(CompFilter *filter, const Attitude& gyro_attitude, const Attitude& accel_attitude) {
+  filter->comp_attitude.pitch = (filter->comp_attitude.pitch + gyro_attitude.pitch) * (1-filter->alpha) + accel_attitude.pitch * (filter->alpha);
+  filter->comp_attitude.roll = (filter->comp_attitude.roll + gyro_attitude.roll) * (1-filter->alpha) + accel_attitude.roll * (filter->alpha);
+  filter->comp_attitude.yaw += gyro_attitude.yaw * filter->dt; // Yaw is only from gyro
+}
+
+void printAttitude(const Attitude& attitude) {
+    printFormattedFloat(attitude.pitch, 5, 2);
+    SERIAL_PORT.print(",");
+    printFormattedFloat(attitude.roll, 5, 2);
+    SERIAL_PORT.print(",");
+    printFormattedFloat(attitude.yaw, 5, 2);
+    SERIAL_PORT.print(",");
+    SERIAL_PORT.print(millis());
+    SERIAL_PORT.println("");
+}
