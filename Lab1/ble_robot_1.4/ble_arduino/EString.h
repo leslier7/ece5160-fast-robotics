@@ -14,6 +14,7 @@ class EString
 
     EString()
     {
+        clear();
     };
 
     /**

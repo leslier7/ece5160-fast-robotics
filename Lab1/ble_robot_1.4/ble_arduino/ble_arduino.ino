@@ -32,7 +32,7 @@ long interval = 500;
 static long previousMillis = 0;
 unsigned long currentMillis = 0;
 
-#define TIME_ARR_SIZE 5//2048
+#define TIME_ARR_SIZE 30
 unsigned long time_values[TIME_ARR_SIZE];
 unsigned long time_index = 0;
 
@@ -51,6 +51,8 @@ enum CommandTypes
     SET_VEL,
     GET_TIME_MILLIS,
     SEND_TIME_DATA,
+    GET_TEMP_READINGS,
+    DATA_RATE,
 };
 
 void
@@ -62,6 +64,7 @@ handle_command()
 
     bool success;
     int cmd_type = -1;
+    char char_arr[MAX_MSG_SIZE];
 
     // Get robot command type (an integer)
     /* NOTE: THIS SHOULD ALWAYS BE CALLED BEFORE get_next_value()
@@ -145,9 +148,7 @@ handle_command()
         /*
          * Add a prefix and postfix to the string value extracted from the command string
          */
-        case ECHO:
-
-            char char_arr[MAX_MSG_SIZE];
+        case ECHO: {
 
             // Extract the next value from the command string as a character array
             success = robot_cmd.get_next_value(char_arr);
@@ -157,11 +158,18 @@ handle_command()
             Serial.print("ECHO: ");
             Serial.println(char_arr);
 
+            EString temp_string = EString();
+            temp_string.clear();
+            temp_string.append("Robot recieved: ");
+            temp_string.append(char_arr);
+
+        
             tx_estring_value.clear();
-            tx_estring_value.append(char_arr);
+            tx_estring_value.append(temp_string.c_str());
             tx_characteristic_string.writeValue(tx_estring_value.c_str());
             
             break;
+        }
         /*
          * DANCE
          */
@@ -191,63 +199,131 @@ handle_command()
             Serial.println("Sending time data!");
 
             EString temp_string = EString();
-
-            
+            int tx_result = -1;
 
             for(int i = 0; i < TIME_ARR_SIZE; i++){
-
-                snprintf(char_arr, MAX_MSG_SIZE, "%lu", time_values[i]);
-                temp_string.append(char_arr);
-
-                if(i != TIME_ARR_SIZE-1){ //Append comma after each string except in the last case
+                char value_str[20];
+                snprintf(value_str, sizeof(value_str), "%lu", time_values[i]);
+                
+                // Check if adding this value would exceed MAX_MSG_SIZE
+                // Account for comma separator and null terminator
+                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+                
+                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+                    // Send current packet before it overflows
+                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                    Serial.print("Sent packet: ");
+                    Serial.println(temp_string.c_str());
+                    
+                    // Small delay to allow BLE stack to process
+                    delay(10);
+                    
+                    // Reset for next packet
+                    temp_string.clear();
+                }
+                
+                // Add comma if not first item in current packet
+                if (temp_string.get_length() > 0) {
                     temp_string.append(",");
                 }
-
-                // EString msg_string = EString();
-                // msg_string.append(time_values[i]);
-
-                // if(temp_string.get_length() + msg_string.get_length() + 1 < MAX_MSG_SIZE){
-                //     temp_string.append(time_values[i]);
-                //     if(i != TIME_ARR_SIZE-1){
-                //         temp_string.append(",");
-                //     }
-                // }
-
-                // snprintf(char_arr, MAX_MSG_SIZE, "%d:%lu", i, time_values[i]);
-
-                // tx_estring_value.clear();
-                // tx_estring_value.append(char_arr);
-                // tx_characteristic_string.writeValue(tx_estring_value.c_str());
-                // delay(10);
-
-                //TODO ack? or maybe send a chunk instead of individual msg
-
+                temp_string.append(value_str);
             }
 
-            Serial.print("Temp string length: ");
-            Serial.println(temp_string.get_length());
-            Serial.print("Temp string: ");
-            Serial.println(temp_string.c_str());
+            // Send any remaining data
+            if (temp_string.get_length() > 0) {
+                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                Serial.print("Sent packet: ");
+                Serial.println(temp_string.c_str());
+                delay(10);
+            }
 
-            if (temp_string.get_length() < MAX_MSG_SIZE){
-                temp_string.append(",end");
-                // char_arr = temp_string.c_str();
-
-                //tx_estring_value.clear();
-                //tx_estring_value.append(temp_string.c_str());
-                tx_characteristic_string.writeValue(temp_string.c_str());
-            } //TODO figure out how to break it up
-
+            // Send end marker
+            tx_result = tx_characteristic_string.writeValue("end");
+            Serial.print("Serial Transmission Result: ");
+            Serial.println(tx_result);
             Serial.println("Finished sending array");
 
+            break;
+        }
 
-            // snprintf(char_arr, MAX_MSG_SIZE, "end");
+        case GET_TEMP_READINGS: {
+            Serial.println("Sending temp readings");
 
-            // tx_estring_value.clear();
-            // tx_estring_value.append(char_arr);
-            // tx_characteristic_string.writeValue(tx_estring_value.c_str());
+            EString temp_string = EString();
+            int tx_result = -1;
 
-            // Serial.println("Finished time transmission");
+            for(int i = 0; i < TIME_ARR_SIZE; i++){
+                char value_str[30];
+                snprintf(value_str, sizeof(value_str), "%lu:%d", time_values[i], temp_values[i]);
+                
+                // Check if adding this value would exceed MAX_MSG_SIZE
+                // Account for comma separator and null terminator
+                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+                
+                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+                    // Send current packet before it overflows
+                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                    Serial.print("Sent packet: ");
+                    Serial.println(temp_string.c_str());
+                    
+                    // Small delay to allow BLE stack to process
+                    delay(10);
+                    
+                    // Reset for next packet
+                    temp_string.clear();
+                }
+                
+                // Add comma if not first item in current packet
+                if (temp_string.get_length() > 0) {
+                    temp_string.append(",");
+                }
+                temp_string.append(value_str);
+            }
+
+            // Send any remaining data
+            if (temp_string.get_length() > 0) {
+                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                Serial.print("Sent packet: ");
+                Serial.println(temp_string.c_str());
+                delay(10);
+            }
+
+            // Send end marker
+            tx_result = tx_characteristic_string.writeValue("end");
+            Serial.print("Serial Transmission Result: ");
+            Serial.println(tx_result);
+            Serial.println("Finished sending array");
+
+            break;
+        }
+
+        case DATA_RATE: {
+            int byte_size;
+
+            // Extract first float from command string
+            success = robot_cmd.get_next_value(byte_size);
+            if (!success)
+                return;
+
+            // Clamp to valid range
+            if (byte_size >= MAX_MSG_SIZE) {
+                byte_size = MAX_MSG_SIZE - 1;
+            }
+
+            // Fast string construction using memset
+            char reply[MAX_MSG_SIZE];
+            memset(reply, 'X', byte_size);
+            reply[byte_size] = '\0';  // Null terminate
+
+            // Send the message
+            tx_characteristic_string.writeValue(reply);
+
+            // Force immediate transmission
+            BLE.poll();
+
+            Serial.print("Sent ");
+            Serial.print(byte_size);
+            Serial.println(" byte reply");
 
             break;
         }
@@ -338,6 +414,20 @@ void collect_time(){
 
 }
 
+void collect_temps(){
+    collect_time(); //Collect time so it corresponds to the temp
+    if(temp_index < TIME_ARR_SIZE) { 
+        temp_values[temp_index] = getTempDegC();
+        //Serial.print("Collected time at t: ");
+        //Serial.println(time_values[time_index]);
+        temp_index++;
+    } else { // Overflows start overwriting old data
+        temp_index = 0;
+        temp_values[temp_index] = getTempDegC();
+        //Serial.println("Time values overflowed");
+    }
+}
+
 void
 write_data()
 {
@@ -388,8 +478,8 @@ loop()
             // Send current time
             //send_time();
 
-            // Collect times
-            collect_time();
+            // Collect temps with times
+            collect_temps();
 
         }
 
