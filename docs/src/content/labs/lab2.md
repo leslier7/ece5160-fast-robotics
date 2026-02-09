@@ -41,4 +41,4 @@ After verifying that the IMU could connect, I started playing with the IMU. I pr
 </figure>
 
 ### Accelerometer
-The next part of the lab was focused on the accelerometer. I first had to calculate the pitch and roll of the IMU using the accelerometer. 
+The next part of the lab was focused on the accelerometer. I first had to calculate the pitch and roll of the IMU using the accelerometer. I used the `atan2()` function to do this so the output goes from -180 to 180 degrees (`atan()` only goes from -90 to 90).
