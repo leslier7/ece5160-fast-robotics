@@ -2,6 +2,20 @@
 #include "ble_config.h"
 #include "data_collection.h"
 
+static bool handle_ping();
+static bool handle_send_two_ints();
+static bool handle_send_three_floats();
+static bool handle_echo();
+static bool handle_dance();
+static bool handle_set_vel();
+static bool handle_get_time_millis();
+static bool handle_send_time_data();
+static bool handle_get_temp_readings();
+static bool handle_data_rate();
+static bool handle_get_imu_readings();
+static bool handle_start_recording();
+static bool handle_stop_recording();
+
 void
 handle_command()
 {   
@@ -11,7 +25,6 @@ handle_command()
 
     bool success;
     int cmd_type = -1;
-    char char_arr[MAX_MSG_SIZE];
 
     // Get robot command type (an integer)
     /* NOTE: THIS SHOULD ALWAYS BE CALLED BEFORE get_next_value()
@@ -31,333 +44,59 @@ handle_command()
          * Write "PONG" on the GATT characteristic BLE_UUID_TX_STRING
          */
         case PING:
-            tx_estring_value.clear();
-            tx_estring_value.append("PONG");
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
-
-            Serial.print("Sent back: ");
-            Serial.println(tx_estring_value.c_str());
-
+            handle_ping();
             break;
         /*
          * Extract two integers from the command string
          */
         case SEND_TWO_INTS:
-            int int_a, int_b;
-
-            // Extract the next value from the command string as an integer
-            success = robot_cmd.get_next_value(int_a);
-            if (!success)
-                return;
-
-            // Extract the next value from the command string as an integer
-            success = robot_cmd.get_next_value(int_b);
-            if (!success)
-                return;
-
-            Serial.print("Two Integers: ");
-            Serial.print(int_a);
-            Serial.print(", ");
-            Serial.println(int_b);
-            
+            handle_send_two_ints();
             break;
         /*
          * Extract three floats from the command string
          */
         case SEND_THREE_FLOATS:
-            
-            float float_a, float_b, float_c;
-
-            // Extract first float from command string
-            success = robot_cmd.get_next_value(float_a);
-            if (!success)
-                return;
-
-            // Extract second float from command string
-            success = robot_cmd.get_next_value(float_b);
-            if (!success)
-                return;
-
-            // Extract third float from command string
-            success = robot_cmd.get_next_value(float_c);
-            if (!success)
-                return;
-
-            Serial.print("Three floats: ");
-            Serial.print(float_a);
-            Serial.print(", ");
-            Serial.print(float_b);
-            Serial.print(", ");
-            Serial.println(float_c);
-
-
+            handle_send_three_floats();
             break;
         /*
          * Add a prefix and postfix to the string value extracted from the command string
          */
-        case ECHO: {
-
-            // Extract the next value from the command string as a character array
-            success = robot_cmd.get_next_value(char_arr);
-            if (!success)
-                return;
-
-            Serial.print("ECHO: ");
-            Serial.println(char_arr);
-
-            EString temp_string = EString();
-            temp_string.clear();
-            temp_string.append("Robot recieved: ");
-            temp_string.append(char_arr);
-
-        
-            tx_estring_value.clear();
-            tx_estring_value.append(temp_string.c_str());
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
-            
+        case ECHO:
+            handle_echo();
             break;
-        }
         /*
          * DANCE
          */
         case DANCE:
-            Serial.println("Look Ma, I'm Dancin'!");
-
+            handle_dance();
             break;
-        
         /*
          * SET_VEL
          */
         case SET_VEL:
-
+            handle_set_vel();
             break;
-        
         case GET_TIME_MILLIS:
-
-            snprintf(char_arr, MAX_MSG_SIZE, "T:%lu", millis());
-
-            tx_estring_value.clear();
-            tx_estring_value.append(char_arr);
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
-
+            handle_get_time_millis();
             break;
-        case SEND_TIME_DATA: {
-
-            Serial.println("Sending time data!");
-
-            EString temp_string = EString();
-            int tx_result = -1;
-
-            for(int i = 0; i < DATA_ARR_SIZE; i++){
-                char value_str[20];
-                snprintf(value_str, sizeof(value_str), "%lu", time_data.values[i]);
-                
-                // Check if adding this value would exceed MAX_MSG_SIZE
-                // Account for comma separator and null terminator
-                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
-                
-                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
-                    // Send current packet before it overflows
-                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                    Serial.print("Sent packet: ");
-                    Serial.println(temp_string.c_str());
-                    
-                    // Small delay to allow BLE stack to process
-                    delay(10);
-                    
-                    // Reset for next packet
-                    temp_string.clear();
-                }
-                
-                // Add comma if not first item in current packet
-                if (temp_string.get_length() > 0) {
-                    temp_string.append(",");
-                }
-                temp_string.append(value_str);
-            }
-
-            // Send any remaining data
-            if (temp_string.get_length() > 0) {
-                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                Serial.print("Sent packet: ");
-                Serial.println(temp_string.c_str());
-                delay(10);
-            }
-
-            // Send end marker
-            tx_result = tx_characteristic_string.writeValue("end");
-            Serial.print("Serial Transmission Result: ");
-            Serial.println(tx_result);
-            Serial.println("Finished sending array");
-
+        case SEND_TIME_DATA:
+            handle_send_time_data();
             break;
-        }
-
-        case GET_TEMP_READINGS: {
-            Serial.println("Sending temp readings");
-
-            EString temp_string = EString();
-            int tx_result = -1;
-
-            for(int i = 0; i < DATA_ARR_SIZE; i++){
-                char value_str[30];
-                snprintf(value_str, sizeof(value_str), "%lu:%d", time_data.values[i], temp_data.values[i]);
-                
-                // Check if adding this value would exceed MAX_MSG_SIZE
-                // Account for comma separator and null terminator
-                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
-                
-                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
-                    // Send current packet before it overflows
-                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                    Serial.print("Sent packet: ");
-                    Serial.println(temp_string.c_str());
-                    
-                    // Small delay to allow BLE stack to process
-                    delay(10);
-                    
-                    // Reset for next packet
-                    temp_string.clear();
-                }
-                
-                // Add comma if not first item in current packet
-                if (temp_string.get_length() > 0) {
-                    temp_string.append(",");
-                }
-                temp_string.append(value_str);
-            }
-
-            // Send any remaining data
-            if (temp_string.get_length() > 0) {
-                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                Serial.print("Sent packet: ");
-                Serial.println(temp_string.c_str());
-                delay(10);
-            }
-
-            // Send end marker
-            tx_result = tx_characteristic_string.writeValue("end");
-            Serial.print("Serial Transmission Result: ");
-            Serial.println(tx_result);
-            Serial.println("Finished sending array");
-
+        case GET_TEMP_READINGS:
+            handle_get_temp_readings();
             break;
-        }
-
-        case DATA_RATE: {
-            int byte_size;
-
-            // Extract first float from command string
-            success = robot_cmd.get_next_value(byte_size);
-            if (!success)
-                return;
-
-            // Clamp to valid range
-            if (byte_size >= MAX_MSG_SIZE) {
-                byte_size = MAX_MSG_SIZE - 1;
-            }
-
-            // Fast string construction using memset
-            char reply[MAX_MSG_SIZE];
-            memset(reply, 'X', byte_size);
-            reply[byte_size] = '\0';  // Null terminate
-
-            // Send the message
-            tx_characteristic_string.writeValue(reply);
-
-            // Force immediate transmission
-            BLE.poll();
-
-            Serial.print("Sent ");
-            Serial.print(byte_size);
-            Serial.println(" byte reply");
-
+        case DATA_RATE:
+            handle_data_rate();
             break;
-        }
-
-        case GET_IMU_READINGS: {
-            Serial.println("Sending IMU readings");
-
-            EString temp_string = EString();
-            int tx_result = -1;
-
-            for(int i = 0; i < DATA_ARR_SIZE; i++){
-                char value_str[30];
-                snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw);
-                
-                // Check if adding this value would exceed MAX_MSG_SIZE
-                // Account for comma separator and null terminator
-                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
-                
-                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
-                    // Send current packet before it overflows
-                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                    Serial.print("Sent packet: ");
-                    Serial.println(temp_string.c_str());
-                    
-                    // Small delay to allow BLE stack to process
-                    delay(10);
-                    
-                    // Reset for next packet
-                    temp_string.clear();
-                }
-                
-                // Add comma if not first item in current packet
-                if (temp_string.get_length() > 0) {
-                    temp_string.append(",");
-                }
-                temp_string.append(value_str);
-            }
-
-            // Send any remaining data
-            if (temp_string.get_length() > 0) {
-                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                Serial.print("Sent packet: ");
-                Serial.println(temp_string.c_str());
-                delay(10);
-            }
-
-            // Send end marker
-            tx_result = tx_characteristic_string.writeValue("end");
-            Serial.print("Serial Transmission Result: ");
-            Serial.println(tx_result);
-            Serial.println("Finished sending array");
-
+        case GET_IMU_READINGS:
+            handle_get_imu_readings();
             break;
-        }
-
-        case START_RECORDING: {
-            clearData(time_data);
-            clearData(temp_data);
-            clearData(imu_data);
-            recording = true;
-
-            EString temp_string = EString();
-            temp_string.clear();
-            temp_string.append("Started recording");
-
-        
-            tx_estring_value.clear();
-            tx_estring_value.append(temp_string.c_str());
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
-
+        case START_RECORDING:
+            handle_start_recording();
             break;
-        }
-
-        case STOP_RECORDING: {
-            recording = false;
-            EString temp_string = EString();
-            temp_string.clear();
-            temp_string.append("Stopped recording");
-
-        
-            tx_estring_value.clear();
-            tx_estring_value.append(temp_string.c_str());
-            tx_characteristic_string.writeValue(tx_estring_value.c_str());
-
+        case STOP_RECORDING:
+            handle_stop_recording();
             break;
-        }
-
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
@@ -368,4 +107,347 @@ handle_command()
             Serial.println(cmd_type);
             break;
     }
+}
+
+static bool handle_ping() {
+    tx_estring_value.clear();
+    tx_estring_value.append("PONG");
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    Serial.print("Sent back: ");
+    Serial.println(tx_estring_value.c_str());
+
+    return true;
+}
+
+static bool handle_send_two_ints() {
+    int int_a, int_b;
+    bool success;
+
+    // Extract the next value from the command string as an integer
+    success = robot_cmd.get_next_value(int_a);
+    if (!success)
+        return false;
+
+    // Extract the next value from the command string as an integer
+    success = robot_cmd.get_next_value(int_b);
+    if (!success)
+        return false;
+
+    Serial.print("Two Integers: ");
+    Serial.print(int_a);
+    Serial.print(", ");
+    Serial.println(int_b);
+    
+    return true;
+}
+
+static bool handle_send_three_floats() {
+    float float_a, float_b, float_c;
+    bool success;
+
+    // Extract first float from command string
+    success = robot_cmd.get_next_value(float_a);
+    if (!success)
+        return false;
+
+    // Extract second float from command string
+    success = robot_cmd.get_next_value(float_b);
+    if (!success)
+        return false;
+
+    // Extract third float from command string
+    success = robot_cmd.get_next_value(float_c);
+    if (!success)
+        return false;
+
+    Serial.print("Three floats: ");
+    Serial.print(float_a);
+    Serial.print(", ");
+    Serial.print(float_b);
+    Serial.print(", ");
+    Serial.println(float_c);
+
+    return true;
+}
+
+static bool handle_echo() {
+    char char_arr[MAX_MSG_SIZE];
+    bool success;
+
+    // Extract the next value from the command string as a character array
+    success = robot_cmd.get_next_value(char_arr);
+    if (!success)
+        return false;
+
+    Serial.print("ECHO: ");
+    Serial.println(char_arr);
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot recieved: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+    
+    return true;
+}
+
+static bool handle_dance() {
+    Serial.println("Look Ma, I'm Dancin'!");
+
+    return true;
+}
+
+static bool handle_set_vel() {
+
+    return true;
+}
+
+static bool handle_get_time_millis() {
+    char char_arr[MAX_MSG_SIZE];
+
+    snprintf(char_arr, MAX_MSG_SIZE, "T:%lu", millis());
+
+    tx_estring_value.clear();
+    tx_estring_value.append(char_arr);
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    return true;
+}
+
+static bool handle_send_time_data() {
+    Serial.println("Sending time data!");
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+    recording = false; // Pause recording while transmitting
+    int start = time_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+        
+        char value_str[20];
+        snprintf(value_str, sizeof(value_str), "%lu", time_data.values[i]);
+        
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            Serial.print("Sent packet: ");
+            Serial.println(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        Serial.print("Sent packet: ");
+        Serial.println(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    Serial.print("Serial Transmission Result: ");
+    Serial.println(tx_result);
+    Serial.println("Finished sending array");
+
+    recording = true;
+
+    return true;
+}
+
+static bool handle_get_temp_readings() {
+    Serial.println("Sending temp readings");
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+    recording = false; // Pause recording while transmitting
+    int start = temp_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+
+
+        char value_str[30];
+        snprintf(value_str, sizeof(value_str), "%lu:%d", time_data.values[i], temp_data.values[i]);
+        
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            Serial.print("Sent packet: ");
+            Serial.println(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        Serial.print("Sent packet: ");
+        Serial.println(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    Serial.print("Serial Transmission Result: ");
+    Serial.println(tx_result);
+    Serial.println("Finished sending array");
+
+    recording = true;
+
+    return true;
+}
+
+static bool handle_data_rate() {
+    int byte_size;
+    bool success;
+
+    // Extract first float from command string
+    success = robot_cmd.get_next_value(byte_size);
+    if (!success)
+        return false;
+
+    // Clamp to valid range
+    if (byte_size >= MAX_MSG_SIZE) {
+        byte_size = MAX_MSG_SIZE - 1;
+    }
+
+    // Fast string construction using memset
+    char reply[MAX_MSG_SIZE];
+    memset(reply, 'X', byte_size);
+    reply[byte_size] = '\0';  // Null terminate
+
+    // Send the message
+    tx_characteristic_string.writeValue(reply);
+
+    // Force immediate transmission
+    BLE.poll();
+
+    Serial.print("Sent ");
+    Serial.print(byte_size);
+    Serial.println(" byte reply");
+
+    return true;
+}
+
+static bool handle_get_imu_readings() {
+    Serial.println("Sending IMU readings");
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+
+    recording = false; // Pause recording while transmitting
+    int start = imu_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+
+        char value_str[30];
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw);
+        
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            Serial.print("Sent packet: ");
+            Serial.println(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        Serial.print("Sent packet: ");
+        Serial.println(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    Serial.print("Serial Transmission Result: ");
+    Serial.println(tx_result);
+    Serial.println("Finished sending array");
+
+    recording = true; // Resume recording after transmit
+    return true;
+}
+
+static bool handle_start_recording() {
+    clearData(time_data);
+    clearData(temp_data);
+    clearData(imu_data);
+    recording = true;
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Started recording");
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    return true;
+}
+
+static bool handle_stop_recording() {
+    recording = false;
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Stopped recording");
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    return true;
 }

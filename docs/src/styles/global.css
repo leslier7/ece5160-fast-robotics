@@ -34,3 +34,12 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-gray-200 rounded-full;
 }
+
+code {
+  font-weight: normal !important;
+}
+
+.prose code::before,
+.prose code::after {
+  content: none;
+}

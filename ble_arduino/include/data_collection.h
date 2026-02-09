@@ -7,7 +7,7 @@
 
 #include "imu_functions.h"
 
-#define DATA_ARR_SIZE 300
+#define DATA_ARR_SIZE 2000
 
 struct TimeData {
     unsigned long values[DATA_ARR_SIZE];
