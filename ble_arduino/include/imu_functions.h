@@ -26,6 +26,10 @@ typedef struct CompFilter {
     float dt;
 } CompFilter;
 
+extern ICM_20948_I2C myICM;
+
+bool initIMU(ICM_20948_I2C &imu);
+
 void printPaddedInt16b(int16_t val);
 
 void printFormattedFloat(float val, uint8_t leading, uint8_t decimals);

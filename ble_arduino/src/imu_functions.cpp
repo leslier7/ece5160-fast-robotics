@@ -7,8 +7,37 @@
 #include <ICM_20948.h>
 
 #define SERIAL_PORT Serial
+#define WIRE_PORT Wire
+// On the SparkFun 9DoF IMU breakout the default is 1, and when the ADR jumper is closed the value becomes 0
+#define AD0_VAL 1
+
+// IMU variables
+ICM_20948_I2C myICM; // Create an ICM_20948_I2C object
 
 // Below here are some helper functions to print the data nicely!
+
+bool initIMU(ICM_20948_I2C &imu){
+  // Set up I2C
+  WIRE_PORT.begin();
+  WIRE_PORT.setClock(400000);
+
+  bool initialized = false;
+  while (!initialized) {
+      myICM.begin(WIRE_PORT, AD0_VAL);
+
+      SERIAL_PORT.print(F("Initialization of the sensor returned: "));
+      SERIAL_PORT.println(imu.statusString());
+
+      if (imu.status != ICM_20948_Stat_Ok) {
+          SERIAL_PORT.println("Trying again...");
+          delay(500);
+      }
+      else {
+          initialized = true;
+      }
+  }
+  return initialized;
+}
 
 void printPaddedInt16b(int16_t val)
 {

@@ -1,59 +1,6 @@
-
-#include "BLECStringCharacteristic.h"
-#include "EString.h"
-#include "RobotCommand.h"
-#include <ArduinoBLE.h>
-
-//////////// BLE UUIDs ////////////
-#define BLE_UUID_TEST_SERVICE "4843fd62-068c-4a37-af34-e724c6a05681"
-
-#define BLE_UUID_RX_STRING "9750f60b-9c9c-4158-b620-02ec9521cd99"
-
-#define BLE_UUID_TX_FLOAT "27616294-3063-4ecc-b60b-3470ddef2938"
-#define BLE_UUID_TX_STRING "f235a225-6735-4d73-94cb-ee5dfce9ba83"
-//////////// BLE UUIDs ////////////
-
-//////////// Global Variables ////////////
-BLEService testService(BLE_UUID_TEST_SERVICE);
-
-BLECStringCharacteristic rx_characteristic_string(BLE_UUID_RX_STRING, BLEWrite, MAX_MSG_SIZE);
-
-BLEFloatCharacteristic tx_characteristic_float(BLE_UUID_TX_FLOAT, BLERead | BLENotify);
-BLECStringCharacteristic tx_characteristic_string(BLE_UUID_TX_STRING, BLERead | BLENotify, MAX_MSG_SIZE);
-
-// RX
-RobotCommand robot_cmd(":|");
-
-// TX
-EString tx_estring_value;
-float tx_float_value = 0.0;
-
-long interval = 500;
-static long previousMillis = 0;
-unsigned long currentMillis = 0;
-
-#define TIME_ARR_SIZE 30
-unsigned long time_values[TIME_ARR_SIZE];
-unsigned long time_index = 0;
-
-int temp_values[TIME_ARR_SIZE];
-int temp_index = 0;
-
-//////////// Global Variables ////////////
-
-enum CommandTypes
-{
-    PING,
-    SEND_TWO_INTS,
-    SEND_THREE_FLOATS,
-    ECHO,
-    DANCE,
-    SET_VEL,
-    GET_TIME_MILLIS,
-    SEND_TIME_DATA,
-    GET_TEMP_READINGS,
-    DATA_RATE,
-};
+#include "commands.h"
+#include "ble_config.h"
+#include "data_collection.h"
 
 void
 handle_command()
@@ -201,9 +148,9 @@ handle_command()
             EString temp_string = EString();
             int tx_result = -1;
 
-            for(int i = 0; i < TIME_ARR_SIZE; i++){
+            for(int i = 0; i < DATA_ARR_SIZE; i++){
                 char value_str[20];
-                snprintf(value_str, sizeof(value_str), "%lu", time_values[i]);
+                snprintf(value_str, sizeof(value_str), "%lu", time_data.values[i]);
                 
                 // Check if adding this value would exceed MAX_MSG_SIZE
                 // Account for comma separator and null terminator
@@ -252,9 +199,9 @@ handle_command()
             EString temp_string = EString();
             int tx_result = -1;
 
-            for(int i = 0; i < TIME_ARR_SIZE; i++){
+            for(int i = 0; i < DATA_ARR_SIZE; i++){
                 char value_str[30];
-                snprintf(value_str, sizeof(value_str), "%lu:%d", time_values[i], temp_values[i]);
+                snprintf(value_str, sizeof(value_str), "%lu:%d", time_data.values[i], temp_data.values[i]);
                 
                 // Check if adding this value would exceed MAX_MSG_SIZE
                 // Account for comma separator and null terminator
@@ -328,6 +275,89 @@ handle_command()
             break;
         }
 
+        case GET_IMU_READINGS: {
+            Serial.println("Sending IMU readings");
+
+            EString temp_string = EString();
+            int tx_result = -1;
+
+            for(int i = 0; i < DATA_ARR_SIZE; i++){
+                char value_str[30];
+                snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw);
+                
+                // Check if adding this value would exceed MAX_MSG_SIZE
+                // Account for comma separator and null terminator
+                int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+                
+                if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+                    // Send current packet before it overflows
+                    tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                    Serial.print("Sent packet: ");
+                    Serial.println(temp_string.c_str());
+                    
+                    // Small delay to allow BLE stack to process
+                    delay(10);
+                    
+                    // Reset for next packet
+                    temp_string.clear();
+                }
+                
+                // Add comma if not first item in current packet
+                if (temp_string.get_length() > 0) {
+                    temp_string.append(",");
+                }
+                temp_string.append(value_str);
+            }
+
+            // Send any remaining data
+            if (temp_string.get_length() > 0) {
+                tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+                Serial.print("Sent packet: ");
+                Serial.println(temp_string.c_str());
+                delay(10);
+            }
+
+            // Send end marker
+            tx_result = tx_characteristic_string.writeValue("end");
+            Serial.print("Serial Transmission Result: ");
+            Serial.println(tx_result);
+            Serial.println("Finished sending array");
+
+            break;
+        }
+
+        case START_RECORDING: {
+            clearData(time_data);
+            clearData(temp_data);
+            clearData(imu_data);
+            recording = true;
+
+            EString temp_string = EString();
+            temp_string.clear();
+            temp_string.append("Started recording");
+
+        
+            tx_estring_value.clear();
+            tx_estring_value.append(temp_string.c_str());
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            break;
+        }
+
+        case STOP_RECORDING: {
+            recording = false;
+            EString temp_string = EString();
+            temp_string.clear();
+            temp_string.append("Stopped recording");
+
+        
+            tx_estring_value.clear();
+            tx_estring_value.append(temp_string.c_str());
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            break;
+        }
+
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
@@ -337,152 +367,5 @@ handle_command()
             Serial.print("Invalid Command Type: ");
             Serial.println(cmd_type);
             break;
-    }
-}
-
-void
-setup()
-{
-    Serial.begin(115200);
-
-    BLE.begin();
-
-    // Set advertised local name and service
-    BLE.setDeviceName("Artemis BLE");
-    BLE.setLocalName("Artemis BLE");
-    BLE.setAdvertisedService(testService);
-
-    // Add BLE characteristics
-    testService.addCharacteristic(tx_characteristic_float);
-    testService.addCharacteristic(tx_characteristic_string);
-    testService.addCharacteristic(rx_characteristic_string);
-
-    // Add BLE service
-    BLE.addService(testService);
-
-    // Initial values for characteristics
-    // Set initial values to prevent errors when reading for the first time on central devices
-    tx_characteristic_float.writeValue(0.0);
-
-    /*
-     * An example using the EString
-     */
-    // Clear the contents of the EString before using it
-    tx_estring_value.clear();
-
-    // Append the string literal "[->"
-    tx_estring_value.append("[->");
-
-    // Append the float value
-    tx_estring_value.append(9.0);
-
-    // Append the string literal "<-]"
-    tx_estring_value.append("<-]");
-
-    // Write the value to the characteristic
-    tx_characteristic_string.writeValue(tx_estring_value.c_str());
-
-    // Output MAC Address
-    Serial.print("Advertising BLE with MAC: ");
-    Serial.println(BLE.address());
-
-    BLE.advertise();
-}
-
-void send_time(){
-    char char_arr[MAX_MSG_SIZE];
-
-    snprintf(char_arr, MAX_MSG_SIZE, "T:%lu", millis());
-
-    tx_estring_value.clear();
-    tx_estring_value.append(char_arr);
-    tx_characteristic_string.writeValue(tx_estring_value.c_str());
-}
-
-void collect_time(){
-
-    if(time_index < TIME_ARR_SIZE) { 
-        time_values[time_index] = millis();
-        //Serial.print("Collected time at t: ");
-        //Serial.println(time_values[time_index]);
-        time_index++;
-    } else { // Overflows start overwriting old data
-        time_index = 0;
-        time_values[time_index] = millis();
-        //Serial.println("Time values overflowed");
-    }
-
-}
-
-void collect_temps(){
-    collect_time(); //Collect time so it corresponds to the temp
-    if(temp_index < TIME_ARR_SIZE) { 
-        temp_values[temp_index] = getTempDegC();
-        //Serial.print("Collected time at t: ");
-        //Serial.println(time_values[time_index]);
-        temp_index++;
-    } else { // Overflows start overwriting old data
-        temp_index = 0;
-        temp_values[temp_index] = getTempDegC();
-        //Serial.println("Time values overflowed");
-    }
-}
-
-void
-write_data()
-{
-    currentMillis = millis();
-    if (currentMillis - previousMillis > interval) {
-
-        tx_float_value = tx_float_value + 0.5;
-        tx_characteristic_float.writeValue(tx_float_value);
-
-        if (tx_float_value > 10000) {
-            tx_float_value = 0;
-            
-        }
-
-        previousMillis = currentMillis;
-    }
-}
-
-void
-read_data()
-{
-    // Query if the characteristic value has been written by another BLE device
-    if (rx_characteristic_string.written()) {
-        handle_command();
-    }
-}
-
-void
-loop()
-{
-    // Listen for connections
-    BLEDevice central = BLE.central();
-
-    // If a central is connected to the peripheral
-    if (central) {
-        Serial.print("Connected to: ");
-        Serial.println(central.address());
-
-        // While central is connected
-        while (central.connected()) {
-            BLE.poll();
-            // Send data
-            write_data();
-
-            // Read data
-            read_data();
-
-            // Send current time
-            //send_time();
-
-            // Collect temps with times
-            collect_temps();
-
-        }
-
-        Serial.println("Disconnected");
     }
 }

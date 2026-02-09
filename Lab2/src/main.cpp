@@ -20,7 +20,9 @@ LowPass lp_phi = {0, 0, 0.4};
 Attitude gyro_attitude = {0, 0, 0};
 Attitude accel_attitude = {0, 0, 0};
 
-CompFilter comp_filter = {{0,0,0}, 0.5, 0.03f};
+CompFilter comp_filter = {{0,0,0}, 0.1, 0.03f};
+
+unsigned long last_time = 0;
 
 void setup() {
     SERIAL_PORT.begin(115200);
@@ -51,11 +53,17 @@ void setup() {
 void loop() {
     if (myICM.dataReady())
     {
+        unsigned long current_time = millis();
+        float dt = (current_time - last_time) / 1000.0f; // Convert ms to seconds
+        last_time = current_time;
+        
+        comp_filter.dt = dt; // Update dt dynamically
+
         myICM.getAGMT();         // The values are only updated when you call 'getAGMT'
-        const float theta = calculateTheta(&myICM);
-        const float phi = calculatePhi(&myICM);
-        updateLowPass(&lp_theta, theta);
-        updateLowPass(&lp_phi, phi);
+        // const float theta = calculateTheta(&myICM);
+        // const float phi = calculatePhi(&myICM);
+        // updateLowPass(&lp_theta, theta);
+        // updateLowPass(&lp_phi, phi);
 
         //    printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
         //printScaledAGMT(&myICM); // This function takes into account the scale settings from when the measurement was made to calculate the values with units
@@ -68,12 +76,18 @@ void loop() {
         // gyro_attitude.roll = gyro_attitude.roll + myICM.gyrX() * 0.03f;  // Integrate gyro X to get roll (deg)
         // gyro_attitude.yaw = gyro_attitude.yaw + myICM.gyrZ() * 0.03f;   // Integrate gyro Z to get yaw (deg)
 
-        updateGyroAttitude(&gyro_attitude, myICM, 0.03f);
+        updateGyroAttitude(&gyro_attitude, myICM, dt);
         updateAccelAttitude(&accel_attitude, myICM);
 
-        updateCompFilter(&comp_filter, gyro_attitude, accel_attitude);
-        printAttitude(comp_filter.comp_attitude);
-        //TODO print all three attitudes to compare
+        updateCompFilter(&comp_filter, myICM, accel_attitude);
+
+        //printAttitude(comp_filter.comp_attitude);
+        //printAttitude(accel_attitude);
+        //printAttitude(gyro_attitude);
+
+        Attitude attitudes[3] = {comp_filter.comp_attitude, gyro_attitude, accel_attitude};
+
+        printManyAttitudes(attitudes, 3);
 
         // printFormattedFloat(gyro_attitude.pitch, 5, 2);
         // SERIAL_PORT.print(",");
