@@ -32,11 +32,11 @@ long interval = 500;
 static long previousMillis = 0;
 unsigned long currentMillis = 0;
 
-#define TIME_ARR_SIZE 30
-unsigned long time_values[TIME_ARR_SIZE];
+#define DATA_ARR_SIZE 30
+unsigned long time_values[DATA_ARR_SIZE];
 unsigned long time_index = 0;
 
-int temp_values[TIME_ARR_SIZE];
+int temp_values[DATA_ARR_SIZE];
 int temp_index = 0;
 
 //////////// Global Variables ////////////
@@ -88,8 +88,8 @@ handle_command()
             tx_estring_value.append("PONG");
             tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
-            Serial.print("Sent back: ");
-            Serial.println(tx_estring_value.c_str());
+            DEBUG_PRINT("Sent back: ");
+            DEBUG_PRINTLN(tx_estring_value.c_str());
 
             break;
         /*
@@ -108,10 +108,10 @@ handle_command()
             if (!success)
                 return;
 
-            Serial.print("Two Integers: ");
-            Serial.print(int_a);
-            Serial.print(", ");
-            Serial.println(int_b);
+            DEBUG_PRINT("Two Integers: ");
+            DEBUG_PRINT(int_a);
+            DEBUG_PRINT(", ");
+            DEBUG_PRINTLN(int_b);
             
             break;
         /*
@@ -136,12 +136,12 @@ handle_command()
             if (!success)
                 return;
 
-            Serial.print("Three floats: ");
-            Serial.print(float_a);
-            Serial.print(", ");
-            Serial.print(float_b);
-            Serial.print(", ");
-            Serial.println(float_c);
+            DEBUG_PRINT("Three floats: ");
+            DEBUG_PRINT(float_a);
+            DEBUG_PRINT(", ");
+            DEBUG_PRINT(float_b);
+            DEBUG_PRINT(", ");
+            DEBUG_PRINTLN(float_c);
 
 
             break;
@@ -155,8 +155,8 @@ handle_command()
             if (!success)
                 return;
 
-            Serial.print("ECHO: ");
-            Serial.println(char_arr);
+            DEBUG_PRINT("ECHO: ");
+            DEBUG_PRINTLN(char_arr);
 
             EString temp_string = EString();
             temp_string.clear();
@@ -174,7 +174,7 @@ handle_command()
          * DANCE
          */
         case DANCE:
-            Serial.println("Look Ma, I'm Dancin'!");
+            DEBUG_PRINTLN("Look Ma, I'm Dancin'!");
 
             break;
         
@@ -196,12 +196,12 @@ handle_command()
             break;
         case SEND_TIME_DATA: {
 
-            Serial.println("Sending time data!");
+            DEBUG_PRINTLN("Sending time data!");
 
             EString temp_string = EString();
             int tx_result = -1;
 
-            for(int i = 0; i < TIME_ARR_SIZE; i++){
+            for(int i = 0; i < DATA_ARR_SIZE; i++){
                 char value_str[20];
                 snprintf(value_str, sizeof(value_str), "%lu", time_values[i]);
                 
@@ -212,8 +212,8 @@ handle_command()
                 if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
                     // Send current packet before it overflows
                     tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                    Serial.print("Sent packet: ");
-                    Serial.println(temp_string.c_str());
+                    DEBUG_PRINT("Sent packet: ");
+                    DEBUG_PRINTLN(temp_string.c_str());
                     
                     // Small delay to allow BLE stack to process
                     delay(10);
@@ -232,27 +232,27 @@ handle_command()
             // Send any remaining data
             if (temp_string.get_length() > 0) {
                 tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                Serial.print("Sent packet: ");
-                Serial.println(temp_string.c_str());
+                DEBUG_PRINT("Sent packet: ");
+                DEBUG_PRINTLN(temp_string.c_str());
                 delay(10);
             }
 
             // Send end marker
             tx_result = tx_characteristic_string.writeValue("end");
-            Serial.print("Serial Transmission Result: ");
-            Serial.println(tx_result);
-            Serial.println("Finished sending array");
+            DEBUG_PRINT("Serial Transmission Result: ");
+            DEBUG_PRINTLN(tx_result);
+            DEBUG_PRINTLN("Finished sending array");
 
             break;
         }
 
         case GET_TEMP_READINGS: {
-            Serial.println("Sending temp readings");
+            DEBUG_PRINTLN("Sending temp readings");
 
             EString temp_string = EString();
             int tx_result = -1;
 
-            for(int i = 0; i < TIME_ARR_SIZE; i++){
+            for(int i = 0; i < DATA_ARR_SIZE; i++){
                 char value_str[30];
                 snprintf(value_str, sizeof(value_str), "%lu:%d", time_values[i], temp_values[i]);
                 
@@ -263,8 +263,8 @@ handle_command()
                 if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
                     // Send current packet before it overflows
                     tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                    Serial.print("Sent packet: ");
-                    Serial.println(temp_string.c_str());
+                    DEBUG_PRINT("Sent packet: ");
+                    DEBUG_PRINTLN(temp_string.c_str());
                     
                     // Small delay to allow BLE stack to process
                     delay(10);
@@ -283,16 +283,16 @@ handle_command()
             // Send any remaining data
             if (temp_string.get_length() > 0) {
                 tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-                Serial.print("Sent packet: ");
-                Serial.println(temp_string.c_str());
+                DEBUG_PRINT("Sent packet: ");
+                DEBUG_PRINTLN(temp_string.c_str());
                 delay(10);
             }
 
             // Send end marker
             tx_result = tx_characteristic_string.writeValue("end");
-            Serial.print("Serial Transmission Result: ");
-            Serial.println(tx_result);
-            Serial.println("Finished sending array");
+            DEBUG_PRINT("Serial Transmission Result: ");
+            DEBUG_PRINTLN(tx_result);
+            DEBUG_PRINTLN("Finished sending array");
 
             break;
         }
@@ -321,9 +321,9 @@ handle_command()
             // Force immediate transmission
             BLE.poll();
 
-            Serial.print("Sent ");
-            Serial.print(byte_size);
-            Serial.println(" byte reply");
+            DEBUG_PRINT("Sent ");
+            DEBUG_PRINT(byte_size);
+            DEBUG_PRINTLN(" byte reply");
 
             break;
         }
@@ -334,8 +334,8 @@ handle_command()
          * before writing to the characteristic.
          */
         default:
-            Serial.print("Invalid Command Type: ");
-            Serial.println(cmd_type);
+            DEBUG_PRINT("Invalid Command Type: ");
+            DEBUG_PRINTLN(cmd_type);
             break;
     }
 }
@@ -383,8 +383,8 @@ setup()
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
     // Output MAC Address
-    Serial.print("Advertising BLE with MAC: ");
-    Serial.println(BLE.address());
+    DEBUG_PRINT("Advertising BLE with MAC: ");
+    DEBUG_PRINTLN(BLE.address());
 
     BLE.advertise();
 }
@@ -401,30 +401,30 @@ void send_time(){
 
 void collect_time(){
 
-    if(time_index < TIME_ARR_SIZE) { 
+    if(time_index < DATA_ARR_SIZE) { 
         time_values[time_index] = millis();
-        //Serial.print("Collected time at t: ");
-        //Serial.println(time_values[time_index]);
+        //DEBUG_PRINT("Collected time at t: ");
+        //DEBUG_PRINTLN(time_values[time_index]);
         time_index++;
     } else { // Overflows start overwriting old data
         time_index = 0;
         time_values[time_index] = millis();
-        //Serial.println("Time values overflowed");
+        //DEBUG_PRINTLN("Time values overflowed");
     }
 
 }
 
 void collect_temps(){
     collect_time(); //Collect time so it corresponds to the temp
-    if(temp_index < TIME_ARR_SIZE) { 
+    if(temp_index < DATA_ARR_SIZE) { 
         temp_values[temp_index] = getTempDegC();
-        //Serial.print("Collected time at t: ");
-        //Serial.println(time_values[time_index]);
+        //DEBUG_PRINT("Collected time at t: ");
+        //DEBUG_PRINTLN(time_values[time_index]);
         temp_index++;
     } else { // Overflows start overwriting old data
         temp_index = 0;
         temp_values[temp_index] = getTempDegC();
-        //Serial.println("Time values overflowed");
+        //DEBUG_PRINTLN("Time values overflowed");
     }
 }
 
@@ -463,8 +463,8 @@ loop()
 
     // If a central is connected to the peripheral
     if (central) {
-        Serial.print("Connected to: ");
-        Serial.println(central.address());
+        DEBUG_PRINT("Connected to: ");
+        DEBUG_PRINTLN(central.address());
 
         // While central is connected
         while (central.connected()) {
@@ -483,6 +483,6 @@ loop()
 
         }
 
-        Serial.println("Disconnected");
+        DEBUG_PRINTLN("Disconnected");
     }
 }

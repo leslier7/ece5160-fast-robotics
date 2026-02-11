@@ -1,6 +1,8 @@
 #ifndef ROBOT_COMMAND_H
 #define ROBOT_COMMAND_H
 
+#include "EString.h"
+
 #define DELIM_SIZE 9
 
 /**
