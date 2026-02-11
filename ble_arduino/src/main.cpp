@@ -56,7 +56,9 @@ loop()
         // While central is connected
         while (central.connected()) {
             
-            updateIMU();
+            bool imu_updated = updateIMU();
+
+            digitalWrite(LED_BUILTIN, imu_updated);
 
             BLE.poll();
             // Send data

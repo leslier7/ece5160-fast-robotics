@@ -40,7 +40,7 @@ void collect_time(TimeData &time_values);
 
 void collect_temps(TemperatureData &temp_values);
 
-void updateIMU();
+bool updateIMU();
 
 void collectIMUData(IMUData &imu_values);
 

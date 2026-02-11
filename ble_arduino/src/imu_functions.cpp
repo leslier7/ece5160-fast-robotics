@@ -269,8 +269,8 @@ void updateGyroAttitude(Attitude *attitude, ICM_20948_I2C &sensor, const float d
 }
 
 void updateAccelAttitude(Attitude *attitude, ICM_20948_I2C &sensor) {
-    attitude->pitch = calculateTheta(&sensor); //pitch (in deg)
-    attitude->roll = calculatePhi(&sensor); // roll (in deg)
+    attitude->pitch = calculatePitch(&sensor); //pitch (in deg)
+    attitude->roll = calculateRoll(&sensor); // roll (in deg)
     // Yaw cannot be obtained from accelerometer
 }
 

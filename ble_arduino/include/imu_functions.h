@@ -60,11 +60,11 @@ void printAttitude(const Attitude& attitude);
 
 void printManyAttitudes(Attitude* attitudes, int length);
 
-inline float calculateTheta(ICM_20948_I2C *sensor) {
+inline float calculatePitch(ICM_20948_I2C *sensor) {
     return atan2(sensor->accX(), sensor->accZ()) * 57.295779513f; // pitch (in deg)
 }
 
-inline float calculatePhi(ICM_20948_I2C *sensor) {
+inline float calculateRoll(ICM_20948_I2C *sensor) {
     return atan2(sensor->accY(), sensor->accZ()) * 57.295779513f; // roll (in deg)
 }
 

@@ -48,6 +48,14 @@ void setup() {
             initialized = true;
         }
     }
+
+    pinMode(LED_BUILTIN, OUTPUT);
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(200);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(200);
+    }
 }
 
 void loop() {
@@ -87,7 +95,9 @@ void loop() {
 
         Attitude attitudes[3] = {comp_filter.comp_attitude, gyro_attitude, accel_attitude};
 
-        printManyAttitudes(attitudes, 3);
+        //printManyAttitudes(attitudes, 3);
+
+        digitalWrite(LED_BUILTIN, HIGH);
 
         // printFormattedFloat(gyro_attitude.pitch, 5, 2);
         // SERIAL_PORT.print(",");
@@ -102,8 +112,9 @@ void loop() {
         //delay(30);
     }
     else
-    {
-        SERIAL_PORT.println("Waiting for data");
-        delay(500);
+    {   
+        digitalWrite(LED_BUILTIN, LOW);
+        //SERIAL_PORT.println("Waiting for data");
+        //delay(500);
     }
 }

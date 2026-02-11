@@ -1,6 +1,7 @@
 #include "data_collection.h"
 #include "ble_config.h"
 #include "imu_functions.h"
+#include "debug.h"
 
 // unsigned long time_values[DATA_ARR_SIZE];
 // unsigned long time_index = 0;
@@ -48,19 +49,18 @@ void collect_temps(TemperatureData &temp_values){
 }
 
 
-void updateIMU(){
+bool updateIMU(){
     unsigned long current_time = millis();
     float dt = (current_time - last_time) / 1000.0f; // Convert ms to seconds
     last_time = current_time;
 
     //IMU processing
     if (myICM.dataReady()) {
-        
         comp_filter.dt = dt; // Update dt dynamically
 
         myICM.getAGMT();         // The values are only updated when you call 'getAGMT'
-        // const float theta = calculateTheta(&myICM);
-        // const float phi = calculatePhi(&myICM);
+        // const float theta = calculatePitch(&myICM);
+        // const float phi = calculateRoll(&myICM);
         // updateLowPass(&lp_theta, theta);
         // updateLowPass(&lp_phi, phi);
 
@@ -68,7 +68,9 @@ void updateIMU(){
         updateAccelAttitude(&accel_attitude, myICM);
 
         updateCompFilter(&comp_filter, myICM, accel_attitude);
+        return true;
     }
+    return false;
 
 }
 
