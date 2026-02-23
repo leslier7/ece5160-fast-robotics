@@ -6,6 +6,7 @@
 #define DATA_COLLECTION_H
 
 #include "imu_functions.h"
+#include "distance_functions.h"
 
 #define DATA_ARR_SIZE 2000
 
@@ -24,11 +25,18 @@ struct IMUData {
     int index;
 };
 
+struct DistanceData {
+    Distances values[DATA_ARR_SIZE];
+    int index;
+};
+
 extern TimeData time_data;
 
 extern TemperatureData temp_data;
 
 extern IMUData imu_data;
+
+extern DistanceData dist_data;
 
 extern CompFilter comp_filter;
 
@@ -42,11 +50,13 @@ void collect_temps(TemperatureData &temp_values);
 
 bool updateIMU();
 
-void collectIMUData(IMUData &imu_values);
+void collect_imu(IMUData &imu_values);
 
-void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values);
+void collect_distance(DistanceData &dist_values);
 
-void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values);
+void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_data);
+
+void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values);
 
 // Generic version
 template<typename T, typename V>

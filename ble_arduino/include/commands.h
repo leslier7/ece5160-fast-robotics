@@ -26,6 +26,8 @@ enum CommandTypes
     GET_IMU_READINGS,
     START_RECORDING,
     STOP_RECORDING,
+    GET_DIST_READINGS,
+    GET_ALL_READINGS,
 };
 
 void handle_command();

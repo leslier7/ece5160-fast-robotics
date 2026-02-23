@@ -1,5 +1,3 @@
-import heroImage from './assets/hero-real.jpg';
-
 
 export const SITE = {
   website: 'https://leslier7.github.io/ece5160-fast-robotics/', // Replace with your actual deployed URL
@@ -25,7 +23,6 @@ export const SITE = {
     title: 'Robbie Leslie',
     subtitle: 'Welcome to my ECE 5160 Fast Robotics portfolio. Here you\'ll find my lab reports.',
     action: 'View Labs',
-    image: heroImage,
     about: `Hi, I'm Robbie! I'm a MEng student in the Electrical and Computer Engineering department. I'm interested in robotics, microcontrollers, embedded systems, computer architecture, IoT, and digital design generally. `
   },
 

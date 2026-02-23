@@ -10,21 +10,34 @@
 #include "ble_config.h"
 #include "data_collection.h"
 #include "imu_functions.h"
-
+#include "distance_functions.h"
 
 //////////// Global Variables ////////////
-
+SFEVL53L1X distanceSensorFront;
+SFEVL53L1X distanceSensorSide;
 
 void
 setup()
 {
     Serial.begin(115200);
+    pinMode(LED_BUILTIN, OUTPUT);
 
     bleSetup();
 
     initIMU(myICM);
 
-    pinMode(LED_BUILTIN, OUTPUT);
+    bool front_setup = setupSensor(distanceSensorFront, true);
+    bool side_setup = setupSensor(distanceSensorSide, false);
+
+    if(!front_setup || !side_setup){
+        digitalWrite(LED_BUILTIN, HIGH);
+        DEBUG_PRINTF("Failed to start both distance sensors");
+        while(1); // TODO maybe change this and set some kind of bluetooth status checker
+    } else {
+        DEBUG_PRINTLN("Started both distance sensors");
+    }
+
+    
     for (int i = 0; i < 3; i++) {
         digitalWrite(LED_BUILTIN, HIGH);
         delay(200);
@@ -58,6 +71,8 @@ loop()
             
             bool imu_updated = updateIMU();
 
+            updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
+
             digitalWrite(LED_BUILTIN, imu_updated);
 
             BLE.poll();
@@ -69,7 +84,7 @@ loop()
 
             // Collect IMU data
             if(recording){
-                collectAllData(time_data, temp_data, imu_data);
+                collectAllData(time_data, temp_data, imu_data, dist_data);
             }
             
 
