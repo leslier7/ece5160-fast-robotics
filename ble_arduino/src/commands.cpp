@@ -1,6 +1,7 @@
 #include "commands.h"
 #include "ble_config.h"
 #include "data_collection.h"
+#include "debug.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -15,6 +16,8 @@ static bool handle_data_rate();
 static bool handle_get_imu_readings();
 static bool handle_start_recording();
 static bool handle_stop_recording();
+static bool handle_get_dist_readings();
+static bool handle_get_all_readings();
 
 void
 handle_command()
@@ -97,14 +100,20 @@ handle_command()
         case STOP_RECORDING:
             handle_stop_recording();
             break;
+        case GET_DIST_READINGS:
+            handle_get_dist_readings();
+            break;
+        case GET_ALL_READINGS:
+            handle_get_all_readings();
+            break;
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
          * before writing to the characteristic.
          */
         default:
-            Serial.print("Invalid Command Type: ");
-            Serial.println(cmd_type);
+            DEBUG_PRINT("Invalid Command Type: ");
+            DEBUG_PRINTLN(cmd_type);
             break;
     }
 }
@@ -114,8 +123,8 @@ static bool handle_ping() {
     tx_estring_value.append("PONG");
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
-    Serial.print("Sent back: ");
-    Serial.println(tx_estring_value.c_str());
+    DEBUG_PRINT("Sent back: ");
+    DEBUG_PRINTLN(tx_estring_value.c_str());
 
     return true;
 }
@@ -134,10 +143,10 @@ static bool handle_send_two_ints() {
     if (!success)
         return false;
 
-    Serial.print("Two Integers: ");
-    Serial.print(int_a);
-    Serial.print(", ");
-    Serial.println(int_b);
+    DEBUG_PRINT("Two Integers: ");
+    DEBUG_PRINT(int_a);
+    DEBUG_PRINT(", ");
+    DEBUG_PRINTLN(int_b);
     
     return true;
 }
@@ -161,12 +170,12 @@ static bool handle_send_three_floats() {
     if (!success)
         return false;
 
-    Serial.print("Three floats: ");
-    Serial.print(float_a);
-    Serial.print(", ");
-    Serial.print(float_b);
-    Serial.print(", ");
-    Serial.println(float_c);
+    DEBUG_PRINT("Three floats: ");
+    DEBUG_PRINT(float_a);
+    DEBUG_PRINT(", ");
+    DEBUG_PRINT(float_b);
+    DEBUG_PRINT(", ");
+    DEBUG_PRINTLN(float_c);
 
     return true;
 }
@@ -180,8 +189,8 @@ static bool handle_echo() {
     if (!success)
         return false;
 
-    Serial.print("ECHO: ");
-    Serial.println(char_arr);
+    DEBUG_PRINT("ECHO: ");
+    DEBUG_PRINTLN(char_arr);
 
     EString temp_string = EString();
     temp_string.clear();
@@ -196,7 +205,7 @@ static bool handle_echo() {
 }
 
 static bool handle_dance() {
-    Serial.println("Look Ma, I'm Dancin'!");
+    DEBUG_PRINTLN("Look Ma, I'm Dancin'!");
 
     return true;
 }
@@ -219,7 +228,7 @@ static bool handle_get_time_millis() {
 }
 
 static bool handle_send_time_data() {
-    Serial.println("Sending time data!");
+    DEBUG_PRINTLN("Sending time data!");
 
     EString temp_string = EString();
     int tx_result = -1;
@@ -239,8 +248,8 @@ static bool handle_send_time_data() {
         if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
             // Send current packet before it overflows
             tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-            Serial.print("Sent packet: ");
-            Serial.println(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
             
             // Small delay to allow BLE stack to process
             delay(10);
@@ -259,16 +268,16 @@ static bool handle_send_time_data() {
     // Send any remaining data
     if (temp_string.get_length() > 0) {
         tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-        Serial.print("Sent packet: ");
-        Serial.println(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
         delay(10);
     }
 
     // Send end marker
     tx_result = tx_characteristic_string.writeValue("end");
-    Serial.print("Serial Transmission Result: ");
-    Serial.println(tx_result);
-    Serial.println("Finished sending array");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
 
     recording = true;
 
@@ -276,7 +285,7 @@ static bool handle_send_time_data() {
 }
 
 static bool handle_get_temp_readings() {
-    Serial.println("Sending temp readings");
+    DEBUG_PRINTLN("Sending temp readings");
 
     EString temp_string = EString();
     int tx_result = -1;
@@ -297,8 +306,8 @@ static bool handle_get_temp_readings() {
         if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
             // Send current packet before it overflows
             tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-            Serial.print("Sent packet: ");
-            Serial.println(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
             
             // Small delay to allow BLE stack to process
             delay(10);
@@ -317,16 +326,16 @@ static bool handle_get_temp_readings() {
     // Send any remaining data
     if (temp_string.get_length() > 0) {
         tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-        Serial.print("Sent packet: ");
-        Serial.println(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
         delay(10);
     }
 
     // Send end marker
     tx_result = tx_characteristic_string.writeValue("end");
-    Serial.print("Serial Transmission Result: ");
-    Serial.println(tx_result);
-    Serial.println("Finished sending array");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
 
     recording = true;
 
@@ -358,15 +367,15 @@ static bool handle_data_rate() {
     // Force immediate transmission
     BLE.poll();
 
-    Serial.print("Sent ");
-    Serial.print(byte_size);
-    Serial.println(" byte reply");
+    DEBUG_PRINT("Sent ");
+    DEBUG_PRINT(byte_size);
+    DEBUG_PRINTLN(" byte reply");
 
     return true;
 }
 
 static bool handle_get_imu_readings() {
-    Serial.println("Sending IMU readings");
+    DEBUG_PRINTLN("Sending IMU readings");
 
     EString temp_string = EString();
     int tx_result = -1;
@@ -387,8 +396,8 @@ static bool handle_get_imu_readings() {
         if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
             // Send current packet before it overflows
             tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-            Serial.print("Sent packet: ");
-            Serial.println(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
             
             // Small delay to allow BLE stack to process
             delay(10);
@@ -407,16 +416,16 @@ static bool handle_get_imu_readings() {
     // Send any remaining data
     if (temp_string.get_length() > 0) {
         tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
-        Serial.print("Sent packet: ");
-        Serial.println(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
         delay(10);
     }
 
     // Send end marker
     tx_result = tx_characteristic_string.writeValue("end");
-    Serial.print("Serial Transmission Result: ");
-    Serial.println(tx_result);
-    Serial.println("Finished sending array");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
 
     recording = true; // Resume recording after transmit
     return true;
@@ -449,5 +458,119 @@ static bool handle_stop_recording() {
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
+    return true;
+}
+
+static bool handle_get_dist_readings() {
+    DEBUG_PRINTLN("Sending all readings");
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+
+    recording = false; // Pause recording while transmitting
+    int start = dist_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+
+        char value_str[30];
+        snprintf(value_str, sizeof(value_str), "%lu:%d:%d", time_data.values[i], dist_data.values[i].front, dist_data.values[i].side);
+        
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
+
+    recording = true; // Resume recording after transmit
+    return true;
+}
+
+static bool handle_get_all_readings() {
+    DEBUG_PRINTLN("Sending all readings");
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+
+    recording = false; // Pause recording while transmitting
+    int start = dist_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+
+        char value_str[64];
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side);
+
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
+
+    recording = true; // Resume recording after transmit
     return true;
 }

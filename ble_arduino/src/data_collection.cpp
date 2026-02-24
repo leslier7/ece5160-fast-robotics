@@ -1,7 +1,9 @@
 #include "data_collection.h"
 #include "ble_config.h"
 #include "imu_functions.h"
+#include "distance_functions.h"
 #include "debug.h"
+#include "globals.h"
 
 // unsigned long time_values[DATA_ARR_SIZE];
 // unsigned long time_index = 0;
@@ -15,6 +17,7 @@ TemperatureData temp_data = { {}, 0};
 
 IMUData imu_data = { {}, 0};
 
+DistanceData dist_data = { {}, 0};
 
 LowPass lp_theta = {0, 0, 0.4};
 LowPass lp_phi = {0, 0, 0.4};
@@ -23,6 +26,8 @@ Attitude gyro_attitude = {0, 0, 0};
 Attitude accel_attitude = {0, 0, 0};
 
 CompFilter comp_filter = {{0,0,0}, 0.1, 0.03f}; //dt is dynamically updated later
+
+Distances dists = {-1, -1};
 
 unsigned long last_time = 0;
 
@@ -46,6 +51,11 @@ void collect_time(TimeData &time_values){
 void collect_temps(TemperatureData &temp_values){
     temp_values.values[temp_values.index] = getTempDegC();
     temp_values.index = (temp_values.index + 1) % DATA_ARR_SIZE;
+}
+
+void collect_dist(DistanceData &dist_data){
+    dist_data.values[dist_data.index] = cur_dists;
+    dist_data.index = (dist_data.index + 1) % DATA_ARR_SIZE;
 }
 
 
@@ -74,19 +84,27 @@ bool updateIMU(){
 
 }
 
-void collectIMUData(IMUData &imu_values){
+void collect_imu(IMUData &imu_values){
     imu_values.values[imu_values.index] = comp_filter.comp_attitude;
     imu_values.index = (imu_values.index + 1) % DATA_ARR_SIZE;
 }
 
-void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values){
+void collectIMUTempData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values){
     collect_time(time_values);
     collect_temps(temp_values);
-    collectIMUData(imu_values);
+    collect_imu(imu_values);
 }
 
-void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values){
+void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values){
+    collect_time(time_values);
+    collect_temps(temp_values);
+    collect_imu(imu_values);
+    collect_dist(dist_values);
+}
+
+void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values){
     clearData(time_values);
     clearData(temp_values);
     clearData(imu_values);
+    clearData(dist_values);
 }
