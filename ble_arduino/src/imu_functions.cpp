@@ -25,7 +25,7 @@ bool initIMU(ICM_20948_I2C &imu){
   while (!initialized) {
       imu.begin(WIRE_PORT, AD0_VAL);
 
-      SERIAL_PORT.print(F("Initialization of the sensor returned: "));
+      SERIAL_PORT.print(F("Initialization of the IMU returned: "));
       SERIAL_PORT.println(imu.statusString());
 
       if (imu.status != ICM_20948_Stat_Ok) {

@@ -28,6 +28,7 @@ enum CommandTypes
     STOP_RECORDING,
     GET_DIST_READINGS,
     GET_ALL_READINGS,
+    SET_MOTOR_JOB,
 };
 
 void handle_command();
