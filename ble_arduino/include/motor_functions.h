@@ -18,12 +18,47 @@ typedef enum channel{
 } Channel;
 
 struct MotorJob {
-  bool active = false;
-  uint32_t stop_at_ms = 0;
-  int left_percent = 0;
-  int right_percent = 0;
+  float right_percent;
+  float left_percent;
+  uint32_t duration_ms;
 };
 
+struct MotorJobQueue {
+  static constexpr uint8_t CAP = 16; // pick size
+  MotorJob buf[CAP];
+  uint8_t head = 0;  // pop index
+  uint8_t tail = 0;  // push index
+  uint8_t count = 0;
+
+  bool push(const MotorJob& j) {
+    if (count >= CAP) return false;         // full
+    buf[tail] = j;
+    tail = (uint8_t)((tail + 1) % CAP);
+    count++;
+    return true;
+  }
+
+  bool pop(MotorJob& out) {
+    if (count == 0) return false;           // empty
+    out = buf[head];
+    head = (uint8_t)((head + 1) % CAP);
+    count--;
+    return true;
+  }
+
+  void clear() { head = tail = count = 0; }
+  bool empty() const { return count == 0; }
+  bool full()  const { return count >= CAP; }
+};
+
+extern MotorJobQueue motor_q;
+
+struct {
+  bool active;
+  uint32_t stop_at_ms;
+  int16_t right_percent;
+  int16_t left_percent;
+} motor_job;
 
 // Percent from -100 to 100 to set direction as well
 inline bool setMotor(channel chan, float percent){
@@ -89,9 +124,18 @@ inline void stopBothMotors(){
     analogWrite(R2, 0);
 }
 
-void startMotorJob(int right_percent, int left_percent, uint32_t duration_ms);
+static void beginJob(const MotorJob& j);
+
+void startMotorQueue();
+
+void pauseMotorQueue();
+
+bool startMotorJob(float right_percent, float left_percent, uint32_t duration_ms);
 
 void serviceMotorJob();
 
+bool queueMotorJob(float right_percent, float left_percent, uint32_t duration_ms);
+
+void abortMotorQueue(bool clear_pending = true);
 
 #endif //LAB2_IMU_FUNCTIONS_H
