@@ -22,6 +22,8 @@ setup()
 {
     Serial.begin(115200);
     pinMode(LED_BUILTIN, OUTPUT);
+    
+    //analogWriteFrequency(20000.0); //TODO play with this
 
     bleSetup();
 

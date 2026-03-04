@@ -23,6 +23,8 @@ struct MotorJob {
   uint32_t duration_ms;
 };
 
+extern float calibration_factor;
+
 struct MotorJobQueue {
   static constexpr uint8_t CAP = 16; // pick size
   MotorJob buf[CAP];
@@ -97,6 +99,10 @@ inline bool setMotor(channel chan, float percent){
 inline bool setBothMotors(float rightMotor, float leftMotor){
     if (rightMotor > 100 || rightMotor < -100) return false;
     if (leftMotor > 100 || leftMotor < -100) return false;
+    
+    if (rightMotor == leftMotor){ // Calibration to make it go straight
+        leftMotor += calibration_factor;
+    }
 
     bool rightReturn = setMotor(RIGHT, rightMotor);
     bool leftReturn = setMotor(LEFT, leftMotor);

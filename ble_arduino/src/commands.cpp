@@ -203,7 +203,7 @@ static bool handle_echo() {
 
     EString temp_string = EString();
     temp_string.clear();
-    temp_string.append("Robot recieved: ");
+    temp_string.append("Robot received: ");
     temp_string.append(char_arr);
 
     tx_estring_value.clear();
@@ -614,7 +614,7 @@ static bool handle_set_motor_job() {
 
     EString temp_string = EString();
     temp_string.clear();
-    temp_string.append("Robot recieved: ");
+    temp_string.append("Robot received: ");
     temp_string.append(char_arr);
 
     tx_estring_value.clear();

@@ -48,7 +48,7 @@ void setup(){
 void loop(){
   if(millis() - prev_time > 3000){
     if (mode==false) {
-      Serial.println("Timmer triggered!");
+      Serial.println("Timer triggered!");
       // motor_speed = -motor_speed;
       // setMotor(RIGHT, motor_speed);
       // setMotor(RIGHT, motor_speed);

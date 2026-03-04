@@ -1,5 +1,7 @@
 #include "motor_functions.h"
 
+float calibration_factor = 13.85;
+
 static bool motor_queue_enabled = false;
 
 MotorJobQueue motor_q;
@@ -8,12 +10,12 @@ void startMotorQueue() {
   motor_queue_enabled = true;
 }
 
-void pauseMotorQueue() {          // pauses after current job finishes (or immediately, your choice)
+void pauseMotorQueue() {
   motor_queue_enabled = false;
 }
 
 bool startMotorJob(float right_percent, float left_percent, uint32_t duration_ms) {
-  // enqueue and let serviceMotorJob() start it deterministically
+  // enqueue and let serviceMotorJob() start it
   return queueMotorJob(right_percent, left_percent, duration_ms);
 }
 
