@@ -28,8 +28,10 @@ bool setupSensor(SFEVL53L1X &sensor, bool alternate){
 
     if (sensor.begin() != 0) { //Begin returns 0 on a good init
         int tries = 0;
-        DEBUG_PRINTLN("Front Sensor failed to begin. Please check wiring. Freezing...");
+        if(alternate) DEBUG_PRINTLN("Alternate Sensor failed to begin. Please check wiring. Freezing...");
+        else DEBUG_PRINTLN("Main Sensor failed to begin. Please check wiring. Freezing...");
         while (tries < SETUP_TRIES){
+            if (sensor.begin() == 0) break;
             tries++;
         }
 

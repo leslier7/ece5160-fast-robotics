@@ -11,6 +11,7 @@
 #include "data_collection.h"
 #include "imu_functions.h"
 #include "distance_functions.h"
+#include "motor_functions.h"
 
 //////////// Global Variables ////////////
 SFEVL53L1X distanceSensorFront;
@@ -21,6 +22,8 @@ setup()
 {
     Serial.begin(115200);
     pinMode(LED_BUILTIN, OUTPUT);
+    
+    //analogWriteFrequency(20000.0); //TODO play with this
 
     bleSetup();
 
@@ -74,6 +77,8 @@ loop()
             updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
 
             digitalWrite(LED_BUILTIN, imu_updated);
+
+            serviceMotorJob();
 
             BLE.poll();
             // Send data

@@ -2,6 +2,7 @@
 #include "ble_config.h"
 #include "data_collection.h"
 #include "debug.h"
+#include "motor_functions.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -18,6 +19,8 @@ static bool handle_start_recording();
 static bool handle_stop_recording();
 static bool handle_get_dist_readings();
 static bool handle_get_all_readings();
+static bool handle_set_motor_job();
+static bool handle_set_motor_sequence();
 
 void
 handle_command()
@@ -105,6 +108,12 @@ handle_command()
             break;
         case GET_ALL_READINGS:
             handle_get_all_readings();
+            break;
+        case SET_MOTOR_JOB:
+            handle_set_motor_job();
+            break;
+        case SET_MOTOR_SEQUENCE:
+            handle_set_motor_sequence();
             break;
         /* 
          * The default case may not capture all types of invalid commands.
@@ -194,7 +203,7 @@ static bool handle_echo() {
 
     EString temp_string = EString();
     temp_string.clear();
-    temp_string.append("Robot recieved: ");
+    temp_string.append("Robot received: ");
     temp_string.append(char_arr);
 
     tx_estring_value.clear();
@@ -573,4 +582,88 @@ static bool handle_get_all_readings() {
 
     recording = true; // Resume recording after transmit
     return true;
+}
+
+static bool handle_set_motor_job() {
+    float right_percent, left_percent;
+    int duration_ms_i;
+    bool success;
+    char char_arr[MAX_MSG_SIZE];
+
+    // Extract first float from command string
+    success = robot_cmd.get_next_value(left_percent);
+    if (!success)
+        return false;
+
+    // Extract second float from command string
+    success = robot_cmd.get_next_value(right_percent);
+    if (!success)
+        return false;
+
+    // Extract third float from command string
+    success = robot_cmd.get_next_value(duration_ms_i);
+    if (!success)
+        return false;
+
+    if (duration_ms_i < 0) duration_ms_i = 0; // bounds checking just in case
+    uint32_t duration_ms = (uint32_t)duration_ms_i;
+
+    DEBUG_PRINTF("Left percent: %f   Right percent: %f   duration (ms): %d\n", left_percent, right_percent, duration_ms);
+
+    snprintf(char_arr, MAX_MSG_SIZE, "l:%f,r:%f,d:%d", left_percent, right_percent, duration_ms);
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot received: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    startMotorJob(right_percent, left_percent, duration_ms); // Start after the bluetooth return msg so that doesnt interfere
+    startMotorQueue();
+
+    return true;
+}
+
+static bool handle_set_motor_sequence() {
+    float right_percent, left_percent;
+    int duration_ms_i;
+    bool success;
+    int jobs_queued = 0;
+
+    // Keep reading triplets until we run out of tokens
+    while (true) {
+        success = robot_cmd.get_next_value(left_percent);
+        if (!success) break;
+
+        success = robot_cmd.get_next_value(right_percent);
+        if (!success) break;
+
+        success = robot_cmd.get_next_value(duration_ms_i);
+        if (!success) break;
+
+        if (duration_ms_i < 0) duration_ms_i = 0;
+        uint32_t duration_ms = (uint32_t)duration_ms_i;
+
+        DEBUG_PRINTF("Left percent: %f   Right percent: %f   duration (ms): %d\n", left_percent, right_percent, duration_ms);
+
+        if (!queueMotorJob(right_percent, left_percent, duration_ms)) {
+            DEBUG_PRINTLN("Motor queue full!");
+            break;
+        }
+        jobs_queued++;
+    }
+
+    // Send back how many jobs were queued
+    char char_arr[MAX_MSG_SIZE];
+    snprintf(char_arr, MAX_MSG_SIZE, "Queued %d motor jobs", jobs_queued);
+    tx_estring_value.clear();
+    tx_estring_value.append(char_arr);
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    startMotorQueue();
+
+    return jobs_queued > 0;
 }
