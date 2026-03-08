@@ -48,6 +48,8 @@ float updatePID(PIDController& pid){
     //Solving for windup
     if(pid.integral >= pid.windup_max){
         pid.integral = pid.windup_max;
+    } else if (pid.integral < -pid.windup_max){
+        pid.integral = -pid.windup_max;
     }
 
     float derivative = (error - pid.prev_error) / dt;
@@ -59,7 +61,7 @@ float updatePID(PIDController& pid){
 
     // Clamp output to motor range
     //TODO make this full range later, but start slow
-    return constrain(output, -30.0f, 30.0f);
+    return constrain(output, -40.0f, 40.0f);
 }
 
 float readFrontDist() { return (float)cur_dists.front; }

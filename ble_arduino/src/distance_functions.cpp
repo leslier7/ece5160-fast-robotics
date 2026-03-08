@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "distance_functions.h"
 #include "debug.h"
+#include <Wire.h>
 
 Distances cur_dists = {-1, -1};
 
@@ -42,6 +43,44 @@ bool setupSensor(SFEVL53L1X &sensor, bool alternate){
     } 
 
     sensor.startRanging(); // Start ranging
+
+    return true;
+}
+
+bool setupBothSensors(SFEVL53L1X &front, SFEVL53L1X &side){
+
+    //Disable front sensor
+    pinMode(A0, OUTPUT); //Used to control xshut on the front ToF
+
+    digitalWrite(A0, LOW);  // Xshut low to set I2C address
+    delay(10);
+
+    if(side.begin() != 0){
+        DEBUG_PRINTLN("Side sensor failed to start");
+        return false;
+    }
+    side.setI2CAddress(0x60); // 7-bit 0x30 expressed in the 8-bit form
+    delay(10);
+    
+
+    digitalWrite(A0, HIGH);  // restart front sensor
+    delay(20);
+    
+    uint32_t t0 = millis();
+    while (!front.checkBootState()) {
+        if (millis() - t0 > 100) {
+            DEBUG_PRINTLN("Front sensor did not boot");
+            return false;
+        }
+    }
+
+    if(front.begin() != 0){
+        DEBUG_PRINTLN("Front sensor failed to start");
+        return false;
+    }
+
+    side.startRanging();
+    front.startRanging();
 
     return true;
 }

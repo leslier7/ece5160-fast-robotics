@@ -37,11 +37,12 @@ setup()
 
 
     //TODO check if sensors already have unique IDs, then just begin
-    bool side_setup = setupSensor(distanceSensorSide, true);
-    bool front_setup = setupSensor(distanceSensorFront, false);
-    
+    // bool side_setup = setupSensor(distanceSensorSide, true);
+    // bool front_setup = setupSensor(distanceSensorFront, false);
 
-    if(!front_setup || !side_setup){
+    bool bothSetup = setupBothSensors(distanceSensorFront, distanceSensorSide);
+
+    if(!bothSetup){
         digitalWrite(LED_BUILTIN, HIGH);
         DEBUG_PRINTF("Failed to start both distance sensors");
         while(1); // TODO maybe change this and set some kind of bluetooth status checker
@@ -50,7 +51,7 @@ setup()
     }
 
     //TODO make it easier to modify the PID values
-    initPID(pid_controller, 0.3, 0.03, 0.003, readFrontDist, 15);
+    initPID(pid_controller, 0.3, 0.03, 0.003, readFrontDist, 1);
     
     for (int i = 0; i < 3; i++) {
         digitalWrite(LED_BUILTIN, HIGH);

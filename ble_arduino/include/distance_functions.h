@@ -78,4 +78,6 @@ inline void updateDistance(Distances &out, SFEVL53L1X &frontSensor, SFEVL53L1X &
 
 bool setupSensor(SFEVL53L1X &sensor, bool alternate);
 
+bool setupBothSensors(SFEVL53L1X &front, SFEVL53L1X &side);
+
 #endif
