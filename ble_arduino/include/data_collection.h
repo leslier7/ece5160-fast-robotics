@@ -7,6 +7,7 @@
 
 #include "imu_functions.h"
 #include "distance_functions.h"
+#include "motor_functions.h"
 
 #define DATA_ARR_SIZE 2000
 
@@ -30,6 +31,11 @@ struct DistanceData {
     int index;
 };
 
+struct MotorData {
+    MotorSpeeds values[DATA_ARR_SIZE];
+    int index;
+};
+
 extern TimeData time_data;
 
 extern TemperatureData temp_data;
@@ -39,6 +45,8 @@ extern IMUData imu_data;
 extern DistanceData dist_data;
 
 extern CompFilter comp_filter;
+
+extern MotorData motor_data;
 
 extern bool recording;
 
@@ -54,9 +62,11 @@ void collect_imu(IMUData &imu_values);
 
 void collect_distance(DistanceData &dist_values);
 
-void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_data);
+void collect_motor(MotorData &motor_values);
 
-void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values);
+void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_data, MotorData &motor_values);
+
+void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values);
 
 // Generic version
 template<typename T, typename V>

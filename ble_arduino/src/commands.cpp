@@ -530,6 +530,10 @@ static bool handle_get_dist_readings() {
 static bool handle_get_all_readings() {
     DEBUG_PRINTLN("Sending all readings");
 
+    //Stop motors when sending values
+    stopBothMotors();
+    abortMotorQueue(true);
+
     EString temp_string = EString();
     int tx_result = -1;
 
@@ -540,7 +544,7 @@ static bool handle_get_all_readings() {
         int i = (start + k) % DATA_ARR_SIZE; // chronological order
 
         char value_str[64];
-        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side);
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d:%f:%f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
 
         // Check if adding this value would exceed MAX_MSG_SIZE
         // Account for comma separator and null terminator

@@ -66,3 +66,11 @@ void abortMotorQueue(bool clear_pending) {
   stopBothMotors();
   if (clear_pending) motor_q.clear();
 }
+
+MotorSpeeds getCurSpeeds(){
+  if (motor_job.active) {
+    return { motor_job.left_percent, motor_job.right_percent };
+  } else {
+    return { 0.0f, 0.0f };
+  }
+}

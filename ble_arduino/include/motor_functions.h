@@ -23,6 +23,11 @@ struct MotorJob {
   uint32_t duration_ms;
 };
 
+struct MotorSpeeds {
+    float left_percent;
+    float right_percent;
+};
+
 extern float calibration_factor;
 
 struct MotorJobQueue {
@@ -75,7 +80,7 @@ inline bool setMotor(channel chan, float percent){
     if(percent < 0) forward = false;
 
     int val = (int)((abs(percent) / 100.0) * 255);
-    Serial.printf("Val: %d\n", val);
+    //DEBUG_PRINTF("Val: %d\n", val);
 
     int pin1, pin2;
 
@@ -143,5 +148,7 @@ void serviceMotorJob();
 bool queueMotorJob(float right_percent, float left_percent, uint32_t duration_ms);
 
 void abortMotorQueue(bool clear_pending = true);
+
+MotorSpeeds getCurSpeeds();
 
 #endif //LAB2_IMU_FUNCTIONS_H

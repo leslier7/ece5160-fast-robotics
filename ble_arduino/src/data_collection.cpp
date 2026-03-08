@@ -2,6 +2,7 @@
 #include "ble_config.h"
 #include "imu_functions.h"
 #include "distance_functions.h"
+#include "motor_functions.h"
 #include "debug.h"
 #include "globals.h"
 
@@ -18,6 +19,8 @@ TemperatureData temp_data = { {}, 0};
 IMUData imu_data = { {}, 0};
 
 DistanceData dist_data = { {}, 0};
+
+MotorData motor_data = {{}, 0};
 
 LowPass lp_theta = {0, 0, 0.4};
 LowPass lp_phi = {0, 0, 0.4};
@@ -58,6 +61,11 @@ void collect_dist(DistanceData &dist_data){
     dist_data.index = (dist_data.index + 1) % DATA_ARR_SIZE;
 }
 
+void collect_motor(MotorData &motor_values){
+    motor_data.values[motor_data.index] = getCurSpeeds();
+    motor_data.index = (motor_data.index + 1) % DATA_ARR_SIZE;
+}
+
 
 bool updateIMU(){
     unsigned long current_time = millis();
@@ -95,16 +103,18 @@ void collectIMUTempData(TimeData &time_values, TemperatureData &temp_values, IMU
     collect_imu(imu_values);
 }
 
-void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values){
+void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values){
     collect_time(time_values);
     collect_temps(temp_values);
     collect_imu(imu_values);
     collect_dist(dist_values);
+    collect_motor(motor_values);
 }
 
-void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values){
+void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values){
     clearData(time_values);
     clearData(temp_values);
     clearData(imu_values);
     clearData(dist_values);
+    clearData(motor_values);
 }
