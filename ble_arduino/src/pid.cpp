@@ -62,19 +62,32 @@ float updatePID(PIDController& pid){
 
     float measured = pid.readSensor();
     float error = measured - pid.setpoint;
-
-    pid.integral += error * dt;
-
-    //Solving for windup
-    if(pid.integral >= pid.windup_max){
-        pid.integral = pid.windup_max;
-    } else if (pid.integral < -pid.windup_max){
-        pid.integral = -pid.windup_max;
-    }
-
     float derivative = (error - pid.prev_error) / dt;
 
-    float output = pid.kp * error + pid.ki * pid.integral + pid.kd * derivative;
+
+    float p_term = pid.kp * error;
+    float d_term = pid.kd * derivative;
+    float i_term = pid.ki * pid.integral;
+
+    float output = p_term + i_term + d_term;
+
+    bool pos_sat = (output >= 40.0f && error > 0.0f);
+    bool neg_sat = (output <= -40.0f && error < 0.0f);
+
+    //Solving for windup. Only update the integral term if the output isnt saturated
+    if(!(pos_sat || neg_sat)){
+        pid.integral += error * dt;
+
+        if(pid.integral >= pid.windup_max){
+            pid.integral = pid.windup_max;
+        } else if (pid.integral < -pid.windup_max){
+            pid.integral = -pid.windup_max;
+        }
+
+        // Update i_term with new value
+        i_term = pid.ki * pid.integral;
+        output = p_term + i_term + d_term;
+    }
 
     pid.prev_error = error;
     pid.prev_time_ms = now;

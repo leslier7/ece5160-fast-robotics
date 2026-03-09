@@ -9,7 +9,7 @@
 #include "distance_functions.h"
 #include "motor_functions.h"
 
-#define DATA_ARR_SIZE 2000
+#define DATA_ARR_SIZE 1500
 
 struct TimeData {
     unsigned long values[DATA_ARR_SIZE];

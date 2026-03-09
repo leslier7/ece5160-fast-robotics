@@ -101,25 +101,23 @@ inline bool setMotor(channel chan, float percent){
     return true;
 }
 
+inline float applyMotorBand(float m) {
+    const float LOWER_BAND = 10.0f;
+    const float UPPER_BAND = 20.0f;
+
+    if (fabs(m) < LOWER_BAND) return 0;
+    if (m > 0 && m < UPPER_BAND) return UPPER_BAND;
+    if (m < 0 && m > -UPPER_BAND) return -UPPER_BAND;
+    return m;
+}
+
 inline bool setBothMotors(float rightMotor, float leftMotor){
     if (rightMotor > 100 || rightMotor < -100) return false;
     if (leftMotor > 100 || leftMotor < -100) return false;
 
     //TODO might have to update this to make it more robust
-    // Enforce minimum motor magnitude (deadband compensation)
-    const float MIN_PERCENT = 20.0f;
-
-    if (rightMotor > 0 && rightMotor < MIN_PERCENT) {
-        rightMotor = MIN_PERCENT;
-    } else if (rightMotor < 0 && rightMotor > -MIN_PERCENT) {
-        rightMotor = -MIN_PERCENT;
-    }
-
-    if (leftMotor > 0 && leftMotor < MIN_PERCENT) {
-        leftMotor = MIN_PERCENT;
-    } else if (leftMotor < 0 && leftMotor > -MIN_PERCENT) {
-        leftMotor = -MIN_PERCENT;
-    }
+    rightMotor = applyMotorBand(rightMotor);
+    leftMotor  = applyMotorBand(leftMotor);
 
     if (rightMotor == leftMotor){ // Calibration to make it go straight
         leftMotor += calibration_factor;

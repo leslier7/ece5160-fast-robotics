@@ -22,6 +22,8 @@ bool light_value = false;
 unsigned long prev_time;
 
 PIDController pid_controller;
+float pid_percent;
+MotorSpeeds pid_speeds;
 
 void
 setup()
@@ -94,6 +96,7 @@ loop()
             bool imu_updated = updateIMU();
 
             updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
+            //TODO make the prediction for the distance sensors
 
             //digitalWrite(LED_BUILTIN, imu_updated);
 
@@ -108,12 +111,12 @@ loop()
 
             // Collect IMU data
             if(recording){
-                collectAllData(time_data, temp_data, imu_data, dist_data, motor_data);
+                collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
             }
             
             // Handle PID        
             if(pid_controller.running){
-                float pid_percent = updatePID(pid_controller);
+                pid_percent = updatePID(pid_controller);
 
                 DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
                 
@@ -122,7 +125,7 @@ loop()
             
 
             // Heartbeat
-            if ((millis() - prev_time) >= 2000) {
+            if ((millis() - prev_time) >= 500) {
                 digitalWrite(LED_BUILTIN, light_value);
                 light_value = !light_value;
                 prev_time = millis();

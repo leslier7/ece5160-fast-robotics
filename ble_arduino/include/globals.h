@@ -8,5 +8,6 @@ extern SFEVL53L1X distanceSensorFront;
 extern SFEVL53L1X distanceSensorSide;
 
 extern PIDController pid_controller;
+extern float pid_percent;
 
 #endif
