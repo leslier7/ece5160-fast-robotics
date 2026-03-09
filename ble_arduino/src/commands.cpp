@@ -1,8 +1,10 @@
 #include "commands.h"
 #include "ble_config.h"
+#include "globals.h"
 #include "data_collection.h"
 #include "debug.h"
 #include "motor_functions.h"
+#include "pid.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -21,6 +23,10 @@ static bool handle_get_dist_readings();
 static bool handle_get_all_readings();
 static bool handle_set_motor_job();
 static bool handle_set_motor_sequence();
+static bool handle_set_pid_values();
+static bool handle_set_setpoint();
+static bool handle_start_pid();
+static bool handle_stop_pid();
 
 void
 handle_command()
@@ -115,6 +121,19 @@ handle_command()
         case SET_MOTOR_SEQUENCE:
             handle_set_motor_sequence();
             break;
+        case SET_PID_VALUES:
+            handle_set_pid_values();
+            break;
+        case SET_SETPOINT:
+            handle_set_setpoint();
+            break;
+        case START_PID:
+            handle_start_pid();
+            break;
+        case STOP_PID:
+            handle_stop_pid();
+            break;
+        
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
@@ -670,4 +689,128 @@ static bool handle_set_motor_sequence() {
     startMotorQueue();
 
     return jobs_queued > 0;
+}
+
+bool handle_set_pid_values(){
+    float kp, ki, kd, windup_max;
+    bool success;
+    bool windup_changed = false;
+    char char_arr[MAX_MSG_SIZE];
+
+    success = robot_cmd.get_next_value(kp);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(ki);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(kd);
+    if (!success)
+        return false;
+
+    // This one is optional
+    success = robot_cmd.get_next_value(windup_max);
+    if (!success){
+        DEBUG_PRINTLN("Max windup not changed");
+    } else {
+        windup_changed = true;
+    }
+
+    if(!windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f", kp, ki, kd);
+    } else {
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f, w_m:%f", kp, ki, kd, windup_max);
+    }
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot received: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    if(!windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd);
+    } else {
+        changePIDValues(pid_controller, kp, ki, kd, windup_max);
+    }
+
+    return true;
+}
+
+bool handle_set_setpoint(){
+    float setpoint;
+    bool success;
+    char char_arr[MAX_MSG_SIZE];
+
+    // Extract first setpoint from command string
+    success = robot_cmd.get_next_value(setpoint);
+    if (!success)
+        return false;
+
+    snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+    
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot received: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    setpoint = setpoint * 10; // cm to mm
+
+    setSetpoint(pid_controller, setpoint);
+
+    return true;
+}
+
+bool handle_start_pid(){
+    bool success;
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+    
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Starting PID control");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    startPID(pid_controller);
+
+    return true;
+}
+
+bool handle_stop_pid(){
+    bool success;
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Stopping PID control");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    stopPID(pid_controller);
+    stopBothMotors(); // if stopping PID, also stop the motors
+
+    return true;
 }

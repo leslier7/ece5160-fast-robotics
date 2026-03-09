@@ -1,4 +1,6 @@
 #include "motor_functions.h"
+#include "globals.h"
+#include "pid.h"
 
 float calibration_factor = 13.85;
 
@@ -69,7 +71,9 @@ void abortMotorQueue(bool clear_pending) {
 
 MotorSpeeds getCurSpeeds(){
   if (motor_job.active) {
-    return { motor_job.left_percent, motor_job.right_percent };
+    return { (float)(motor_job.left_percent), (float)(motor_job.right_percent) };
+  } else if (pid_controller.running){
+    return {pid_controller.prev_error, pid_controller.prev_error}; //TODO this isnt the best way of doing this, but should work for now
   } else {
     return { 0.0f, 0.0f };
   }

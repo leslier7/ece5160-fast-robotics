@@ -30,6 +30,10 @@ enum CommandTypes
     GET_ALL_READINGS,
     SET_MOTOR_JOB,
     SET_MOTOR_SEQUENCE,
+    SET_PID_VALUES,
+    SET_SETPOINT,
+    START_PID,
+    STOP_PID
 };
 
 void handle_command();

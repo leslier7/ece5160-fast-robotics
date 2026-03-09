@@ -68,7 +68,7 @@ setup()
 
     //TODO make this bluetooth controlled
     //TODO setpoint is in mm from sensor, but I want it in cm
-    startPID(pid_controller, 300);
+    //startPID(pid_controller, 300);
 }
 
 
@@ -77,58 +77,60 @@ void
 loop()
 {   
     //TOOD get rid of all of this
-    updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
-
-    //running PID as an experiment
-    float pid_percent = updatePID(pid_controller);
-
-    
-    DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
-
-    setBothMotors(pid_percent, pid_percent);
+    //updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
 
     // Bluetooth processing
     // Listen for connections
-    // BLEDevice central = BLE.central();
+    BLEDevice central = BLE.central();
 
-    // // If a central is connected to the peripheral
-    // if (central) {
-    //     DEBUG_PRINT("Connected to: ");
-    //     DEBUG_PRINTLN(central.address());
+    // If a central is connected to the peripheral
+    if (central) {
+        DEBUG_PRINT("Connected to: ");
+        DEBUG_PRINTLN(central.address());
 
-    //     // While central is connected
-    //     while (central.connected()) {
+        // While central is connected
+        while (central.connected()) {
             
-    //         bool imu_updated = updateIMU();
+            bool imu_updated = updateIMU();
 
-    //         updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
+            updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
 
-    //         //digitalWrite(LED_BUILTIN, imu_updated);
+            //digitalWrite(LED_BUILTIN, imu_updated);
 
-    //         serviceMotorJob();
+            serviceMotorJob();
 
-    //         BLE.poll();
-    //         // Send data
-    //         write_data();
+            BLE.poll();
+            // Send data
+            write_data();
 
-    //         // Read data
-    //         read_data();
+            // Read data
+            read_data();
 
-    //         // Collect IMU data
-    //         if(recording){
-    //             collectAllData(time_data, temp_data, imu_data, dist_data, motor_data);
-    //         }
+            // Collect IMU data
+            if(recording){
+                collectAllData(time_data, temp_data, imu_data, dist_data, motor_data);
+            }
             
-    //         // Heartbeat
-    //         if ((millis() - prev_time) >= 2000) {
-    //             digitalWrite(LED_BUILTIN, light_value);
-    //             light_value = !light_value;
-    //             prev_time = millis();
-    //         }
-            
-    //     }
+            // Handle PID        
+            if(pid_controller.running){
+                float pid_percent = updatePID(pid_controller);
 
-    //     DEBUG_PRINTLN("Disconnected");
-    //     stopBothMotors();
-    // }
+                DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
+                
+                setBothMotors(pid_percent, pid_percent);
+            }
+            
+
+            // Heartbeat
+            if ((millis() - prev_time) >= 2000) {
+                digitalWrite(LED_BUILTIN, light_value);
+                light_value = !light_value;
+                prev_time = millis();
+            }
+            
+        }
+
+        DEBUG_PRINTLN("Disconnected");
+        stopBothMotors();
+    }
 }

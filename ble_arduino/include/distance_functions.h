@@ -69,6 +69,9 @@ inline void updateDistance(Distances &out, SFEVL53L1X &frontSensor, SFEVL53L1X &
 
   if(frontSensor.checkForDataReady()){
     out.front = getSensorDistance(frontSensor);
+    if (out.front == -1) {
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
   }
 
   if(sideSensor.checkForDataReady()){

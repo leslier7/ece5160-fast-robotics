@@ -104,7 +104,23 @@ inline bool setMotor(channel chan, float percent){
 inline bool setBothMotors(float rightMotor, float leftMotor){
     if (rightMotor > 100 || rightMotor < -100) return false;
     if (leftMotor > 100 || leftMotor < -100) return false;
-    
+
+    //TODO might have to update this to make it more robust
+    // Enforce minimum motor magnitude (deadband compensation)
+    const float MIN_PERCENT = 20.0f;
+
+    if (rightMotor > 0 && rightMotor < MIN_PERCENT) {
+        rightMotor = MIN_PERCENT;
+    } else if (rightMotor < 0 && rightMotor > -MIN_PERCENT) {
+        rightMotor = -MIN_PERCENT;
+    }
+
+    if (leftMotor > 0 && leftMotor < MIN_PERCENT) {
+        leftMotor = MIN_PERCENT;
+    } else if (leftMotor < 0 && leftMotor > -MIN_PERCENT) {
+        leftMotor = -MIN_PERCENT;
+    }
+
     if (rightMotor == leftMotor){ // Calibration to make it go straight
         leftMotor += calibration_factor;
     }

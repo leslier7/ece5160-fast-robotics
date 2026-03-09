@@ -16,8 +16,28 @@ void initPID(PIDController& pid, float kp, float ki, float kd, SensorReadFn sens
     pid.readSensor = sensor_fn;
 }
 
+void changePIDValues(PIDController& pid, float kp, float ki, float kd){
+    pid.kp = kp;
+    pid.ki = ki;
+    pid.kd = kd;
+}
+
+void changePIDValues(PIDController& pid, float kp, float ki, float kd, float windup_max){
+    pid.kp = kp;
+    pid.ki = ki;
+    pid.kd = kd;
+    pid.windup_max = windup_max;
+}
+
 void startPID(PIDController& pid, float setpoint) {
     pid.setpoint = setpoint;
+    pid.integral = 0.0f;
+    pid.prev_error = 0.0f;
+    pid.prev_time_ms = millis();
+    pid.running = true;
+}
+
+void startPID(PIDController& pid) {
     pid.integral = 0.0f;
     pid.prev_error = 0.0f;
     pid.prev_time_ms = millis();

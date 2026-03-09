@@ -21,8 +21,11 @@ struct PIDController {
 };
 
 void initPID(PIDController& pid, float kp, float ki, float kd, SensorReadFn sensor_fn, float windup_max);
+void changePIDValues(PIDController& pid, float kp, float ki, float kd);
+void changePIDValues(PIDController& pid, float kp, float ki, float kd, float windup_max);
 void setSetpoint(PIDController& pid, float value);
 void startPID(PIDController& pid, float setpoint);
+void startPID(PIDController& pid); // Uses existing setpoint, but resets rest of controller
 void stopPID(PIDController& pid);
 float updatePID(PIDController& pid);
 
