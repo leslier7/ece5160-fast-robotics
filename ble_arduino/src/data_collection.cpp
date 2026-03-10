@@ -57,7 +57,23 @@ void collect_temps(TemperatureData &temp_values){
 }
 
 void collect_dist(DistanceData &dist_data){
-    dist_data.values[dist_data.index] = cur_dists;
+    if(cur_dists.front_updated){
+        dist_data.values[dist_data.index].front = cur_dists.front;
+    } else if(pred_dists.front_updated) {
+        dist_data.values[dist_data.index].front = pred_dists.front;
+    } else {
+        dist_data.values[dist_data.index].front = -1; //no data updated at this time
+    }
+
+    if(cur_dists.side_updated){
+        dist_data.values[dist_data.index].side = cur_dists.side;
+    } else if(pred_dists.side_updated) {
+        dist_data.values[dist_data.index].side = pred_dists.side;
+    } else {
+        dist_data.values[dist_data.index].side = -1;
+    }
+
+    //dist_data.values[dist_data.index] = cur_dists;
     dist_data.index = (dist_data.index + 1) % DATA_ARR_SIZE;
 }
 

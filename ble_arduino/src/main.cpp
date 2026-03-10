@@ -25,6 +25,15 @@ PIDController pid_controller;
 float pid_percent;
 MotorSpeeds pid_speeds;
 
+// Interupt function
+void timerISR(void)
+{
+    // Clear the interrupt
+    am_hal_ctimer_int_clear(AM_HAL_CTIMER_INT_TIMERA0);
+
+    // code goes here
+}
+
 void
 setup()
 {
@@ -53,7 +62,7 @@ setup()
     }
 
     //TODO make it easier to modify the PID values
-    initPID(pid_controller, 0.3, 0.03, 0.003, readFrontDist, 1);
+    initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readFrontDist, 1);
     
     for (int i = 0; i < 3; i++) {
         digitalWrite(LED_BUILTIN, HIGH);
@@ -61,6 +70,28 @@ setup()
         digitalWrite(LED_BUILTIN, LOW);
         delay(200);
     }
+
+    // // Interupt code if desired
+    // // Configure timer 0A
+    // am_hal_ctimer_config_single(0, AM_HAL_CTIMER_TIMERA,
+    //     AM_HAL_CTIMER_FN_REPEAT |
+    //     AM_HAL_CTIMER_INT_ENABLE |
+    //     AM_HAL_CTIMER_XT_32_768KHZ);
+
+    // // Set compare value
+    // am_hal_ctimer_period_set(0, AM_HAL_CTIMER_TIMERA, 32768/1000, 0); // 1 kHz (just change the divisor to change the frequency)
+
+    // // Enable interrupt in NVIC
+    // NVIC_EnableIRQ(CTIMER_IRQn);
+
+    // // Register interrupt handler
+    // am_hal_ctimer_int_register(AM_HAL_CTIMER_INT_TIMERA0, timerISR);
+
+    // // Enable timer interrupt
+    // am_hal_ctimer_int_enable(AM_HAL_CTIMER_INT_TIMERA0);
+
+    // // Start timer
+    // am_hal_ctimer_start(0, AM_HAL_CTIMER_TIMERA);
 
     // Debugging struct sizes
     // DEBUG_PRINT("Size of attitude struct: ");
@@ -98,31 +129,32 @@ loop()
             updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
             //TODO make the prediction for the distance sensors
 
+            pred_dists = predictDistances(cur_dists, prev_dists);
+
+            // Handle PID        
+            if(pid_controller.running){
+                pid_percent = updatePID(pid_controller);
+
+                //DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
+                
+                setBothMotors(pid_percent, pid_percent);
+            }
+
             //digitalWrite(LED_BUILTIN, imu_updated);
 
             serviceMotorJob();
-
-            BLE.poll();
-            // Send data
-            write_data();
-
-            // Read data
-            read_data();
-
+            
             // Collect IMU data
             if(recording){
                 collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
             }
             
-            // Handle PID        
-            if(pid_controller.running){
-                pid_percent = updatePID(pid_controller);
-
-                DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
-                
-                setBothMotors(pid_percent, pid_percent);
-            }
-            
+            // if(cur_dists.front_updated){
+            //     prev_dists.front = cur_dists.front;
+            // }
+            // if(cur_dists.side_updated){
+            //     prev_dists.side = cur_dists.side;
+            // }
 
             // Heartbeat
             if ((millis() - prev_time) >= 500) {
@@ -131,6 +163,13 @@ loop()
                 prev_time = millis();
             }
             
+
+            BLE.poll();
+            // Send data
+            write_data();
+
+            // Read data
+            read_data();
         }
 
         DEBUG_PRINTLN("Disconnected");

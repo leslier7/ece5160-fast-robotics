@@ -9,9 +9,17 @@
 struct Distances{
   int front;
   int side;
+  bool front_updated;
+  bool side_updated;
+  int front_dt;
+  unsigned long front_prev_time;
+  int side_dt;
+  unsigned long side_prev_time;
 };
 
 extern Distances cur_dists;
+extern Distances prev_dists;
+extern Distances pred_dists;
 
 inline int getSensorDistance(SFEVL53L1X &sensor){
 
@@ -66,21 +74,39 @@ inline Distances getDistances(SFEVL53L1X &frontSensor, SFEVL53L1X &sideSensor){
 }
 
 inline void updateDistance(Distances &out, SFEVL53L1X &frontSensor, SFEVL53L1X &sideSensor){
+  out.front_updated = false;
+  out.side_updated = false;
 
   if(frontSensor.checkForDataReady()){
-    out.front = getSensorDistance(frontSensor);
-    if (out.front == -1) {
-      digitalWrite(LED_BUILTIN, HIGH);
-    }
+    prev_dists.front = out.front;
+    out.front_updated = true;
+    unsigned long now = millis();
+    out.front_dt = now - out.front_prev_time;
+    out.front_prev_time = now;
+    //out.front = getSensorDistance(frontSensor);
+    out.front = frontSensor.getDistance();
+    frontSensor.clearInterrupt();
+    // if (out.front == -1) {
+    //   digitalWrite(LED_BUILTIN, HIGH);
+    // }
   }
 
   if(sideSensor.checkForDataReady()){
-    out.side = getSensorDistance(sideSensor);
+    prev_dists.side = out.side;
+    out.side_updated = true;
+    unsigned long now = millis();
+    out.side_dt = now - out.side_prev_time;
+    out.side_prev_time = now;
+    out.side = sideSensor.getDistance();
+    sideSensor.clearInterrupt();
+    //out.side = getSensorDistance(sideSensor);
   }
 }
 
 bool setupSensor(SFEVL53L1X &sensor, bool alternate);
 
 bool setupBothSensors(SFEVL53L1X &front, SFEVL53L1X &side);
+
+Distances predictDistances(Distances &cur_dists, Distances &prev_dists);
 
 #endif

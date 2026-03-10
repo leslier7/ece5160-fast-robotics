@@ -28,6 +28,10 @@ struct MotorSpeeds {
     float right_percent;
 };
 
+constexpr float MOTOR_LOWER_BAND = 10.0f;
+constexpr float MOTOR_UPPER_BAND = 20.0f;
+constexpr float MOTOR_BRAKE_CMD = 1000.0f;
+
 extern float calibration_factor;
 
 struct MotorJobQueue {
@@ -67,20 +71,96 @@ struct {
   int16_t left_percent;
 } motor_job;
 
-// Percent from -100 to 100 to set direction as well
-inline bool setMotor(channel chan, float percent){
+// // Percent from -100 to 100 to set direction as well
+// inline bool setMotor(channel chan, float percent){
+
+//     if (percent > 100 || percent < -100) return false;
+//     if (percent == 100) percent = 99; //Making sure to always have a bit of duty cycle
+//     if (percent == -100) percent = -99;
+
+//     if (chan == LEFT) percent = -percent;   // Inverting one motor to keep direction the same
+
+//     bool forward = true;
+//     if(percent < 0) forward = false;
+
+//     int val = (int)((abs(percent) / 100.0) * 255);
+//     //DEBUG_PRINTF("Val: %d\n", val);
+
+//     int pin1, pin2;
+
+//     if (chan == RIGHT) {
+//         pin1 = R1; pin2 = R2;
+//     } else {
+//         pin1 = L1; pin2 = L2;
+//     }
+
+//     if (forward) {
+//         analogWrite(pin1, val);
+//         analogWrite(pin2, 0);
+//     } else {
+//         analogWrite(pin1, 0);
+//         analogWrite(pin2, val);
+//     }
+
+//     return true;
+// }
+
+inline void stopMotor(Channel chan){
+
+    int pin1, pin2;
+    if (chan == RIGHT) {
+        pin1 = R1; pin2 = R2;
+    } else {
+        pin1 = L1; pin2 = L2;
+    }
+
+    analogWrite(pin1, 0);
+    analogWrite(pin2, 0);
+}
+
+inline void stopBothMotors(){
+    analogWrite(L1, 0);
+    analogWrite(R1, 0);
+    analogWrite(L2, 0);
+    analogWrite(R2, 0);
+}
+
+inline void brakeMotor(Channel chan){
+    int pin1, pin2;
+    if (chan == RIGHT) {
+        pin1 = R1; pin2 = R2;
+    } else {
+        pin1 = L1; pin2 = L2;
+    }
+
+    analogWrite(pin1, 255);
+    analogWrite(pin2, 255);
+}
+
+inline void brakeBothMotors(){
+    analogWrite(L1, 255);
+    analogWrite(R1, 255);
+    analogWrite(L2, 255);
+    analogWrite(R2, 255);
+}
+
+inline bool setMotor(Channel chan, float percent){
+
+    if (percent == MOTOR_BRAKE_CMD) {
+        brakeMotor(chan);
+        return true;
+    }
 
     if (percent > 100 || percent < -100) return false;
-    if (percent == 100) percent = 99; //Making sure to always have a bit of duty cycle
+    if (percent == 100) percent = 99;
     if (percent == -100) percent = -99;
 
-    if (chan == LEFT) percent = -percent;   // Inverting one motor to keep direction the same
+    if (chan == LEFT) percent = -percent;
 
     bool forward = true;
     if(percent < 0) forward = false;
 
-    int val = (int)((abs(percent) / 100.0) * 255);
-    //DEBUG_PRINTF("Val: %d\n", val);
+    int val = (int)((abs(percent) / 100.0f) * 255.0f);
 
     int pin1, pin2;
 
@@ -101,13 +181,32 @@ inline bool setMotor(channel chan, float percent){
     return true;
 }
 
+// inline float applyMotorBand(float m) {
+
+//     if (fabs(m) < MOTOR_LOWER_BAND) return 0; 
+//     if (m > 0 && m < MOTOR_UPPER_BAND) return MOTOR_UPPER_BAND; 
+//     if (m < 0 && m > -MOTOR_UPPER_BAND) return -MOTOR_UPPER_BAND; 
+//     return m;
+// }
+
+inline bool driveMotorCommand(Channel chan, float cmd) {
+    if (cmd == MOTOR_BRAKE_CMD) {
+        brakeMotor(chan);
+        return true;
+    }
+    return setMotor(chan, cmd);
+}
+
+
 inline float applyMotorBand(float m) {
     const float LOWER_BAND = 10.0f;
     const float UPPER_BAND = 20.0f;
 
-    if (fabs(m) < LOWER_BAND) return 0;
-    if (m > 0 && m < UPPER_BAND) return UPPER_BAND;
+    if (m > 0 && m < LOWER_BAND) return MOTOR_BRAKE_CMD;
+    if (m >= LOWER_BAND && m < UPPER_BAND) return UPPER_BAND;
+
     if (m < 0 && m > -UPPER_BAND) return -UPPER_BAND;
+
     return m;
 }
 
@@ -119,34 +218,17 @@ inline bool setBothMotors(float rightMotor, float leftMotor){
     rightMotor = applyMotorBand(rightMotor);
     leftMotor  = applyMotorBand(leftMotor);
 
-    if (rightMotor == leftMotor){ // Calibration to make it go straight
+    if (rightMotor == leftMotor && rightMotor != MOTOR_BRAKE_CMD){ // Calibration to make it go straight
         leftMotor += calibration_factor;
     }
 
-    bool rightReturn = setMotor(RIGHT, rightMotor);
-    bool leftReturn = setMotor(LEFT, leftMotor);
+    // bool rightReturn = setMotor(RIGHT, rightMotor);
+    // bool leftReturn = setMotor(LEFT, leftMotor);
+
+    bool rightReturn = driveMotorCommand(RIGHT, rightMotor);
+    bool leftReturn  = driveMotorCommand(LEFT, leftMotor);
 
     return rightReturn && leftReturn;
-}
-
-inline void stopMotor(Channel chan){
-
-    int pin1, pin2;
-    if (chan == RIGHT) {
-        pin1 = R1; pin2 = R2;
-    } else {
-        pin1 = L1; pin2 = L2;
-    }
-
-    analogWrite(pin1, 0);
-    analogWrite(pin2, 0);
-}
-
-inline void stopBothMotors(){
-    analogWrite(L1, 0);
-    analogWrite(R1, 0);
-    analogWrite(L2, 0);
-    analogWrite(R2, 0);
 }
 
 static void beginJob(const MotorJob& j);

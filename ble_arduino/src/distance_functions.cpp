@@ -5,6 +5,8 @@
 #include <Wire.h>
 
 Distances cur_dists = {-1, -1};
+Distances prev_dists = {-1, -1};
+Distances pred_dists = {-1, -1};
 
 bool setupSensor(SFEVL53L1X &sensor, bool alternate){
 
@@ -79,8 +81,28 @@ bool setupBothSensors(SFEVL53L1X &front, SFEVL53L1X &side){
         return false;
     }
 
+    //TODO medium might be better, but that would require swapping libraries. This should make it faster though
+    front.setDistanceModeShort();
+    side.setDistanceModeShort();
+
     side.startRanging();
     front.startRanging();
 
     return true;
+}
+
+Distances predictDistances(Distances &cur_dists, Distances &prev_dists){
+    Distances pred = cur_dists; //Fallback
+
+    float slope_front = (cur_dists.front - prev_dists.front) / (float)cur_dists.front_dt;
+
+    pred.front = (int)(cur_dists.front + slope_front * (float)(millis() - cur_dists.front_prev_time));
+    pred.front_updated = true;
+
+    float slope_side = (cur_dists.side - prev_dists.side) / (float)cur_dists.side_dt;
+
+    pred.side = (int)(cur_dists.side + slope_side * (float)(millis() - cur_dists.side_prev_time));
+    pred.side_updated = true;
+
+    return pred;
 }

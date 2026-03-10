@@ -692,8 +692,9 @@ static bool handle_set_motor_sequence() {
 }
 
 bool handle_set_pid_values(){
-    float kp, ki, kd, windup_max;
+    float kp, ki, kd, alpha, windup_max;
     bool success;
+    bool alpha_changed = false;
     bool windup_changed = false;
     char char_arr[MAX_MSG_SIZE];
 
@@ -710,6 +711,14 @@ bool handle_set_pid_values(){
         return false;
 
     // This one is optional
+    success = robot_cmd.get_next_value(alpha);
+    if (!success){
+        DEBUG_PRINTLN("Alpha not changed");
+    } else {
+        alpha_changed = true;
+    }
+
+    // This one is optional
     success = robot_cmd.get_next_value(windup_max);
     if (!success){
         DEBUG_PRINTLN("Max windup not changed");
@@ -717,10 +726,14 @@ bool handle_set_pid_values(){
         windup_changed = true;
     }
 
-    if(!windup_changed){
+    if(!alpha_changed && !windup_changed){
         snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f", kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,a:%f", kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,w_m:%f", kp, ki, kd, windup_max); // This should never happen
     } else {
-        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f, w_m:%f", kp, ki, kd, windup_max);
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,a:%f,w_m:%f", kp, ki, kd, alpha, windup_max); 
     }
     
 
@@ -733,10 +746,14 @@ bool handle_set_pid_values(){
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
-    if(!windup_changed){
+    if(!alpha_changed && !windup_changed){
         changePIDValues(pid_controller, kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd, pid_controller.alpha, windup_max); //This should never happen
     } else {
-        changePIDValues(pid_controller, kp, ki, kd, windup_max);
+        changePIDValues(pid_controller, kp, ki, kd, alpha, windup_max); 
     }
 
     return true;
