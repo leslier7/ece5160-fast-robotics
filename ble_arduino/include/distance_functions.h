@@ -9,6 +9,8 @@
 struct Distances{
   int front;
   int side;
+  int front_status;
+  int side_status;
   bool front_updated;
   bool side_updated;
   int front_dt;
@@ -49,7 +51,9 @@ inline bool readBothDistancesIfReady(SFEVL53L1X &front, SFEVL53L1X &side, Distan
   if (!(fr && sr)) return false;
 
   out.front = front.getDistance();
+  out.front_status = front.getRangeStatus();
   out.side  = side.getDistance();
+  out.side_status = side.getRangeStatus();
 
   front.clearInterrupt();
   side.clearInterrupt();
@@ -85,6 +89,7 @@ inline void updateDistance(Distances &out, SFEVL53L1X &frontSensor, SFEVL53L1X &
     out.front_prev_time = now;
     //out.front = getSensorDistance(frontSensor);
     out.front = frontSensor.getDistance();
+    out.front_status = frontSensor.getRangeStatus();
     frontSensor.clearInterrupt();
     // if (out.front == -1) {
     //   digitalWrite(LED_BUILTIN, HIGH);
@@ -98,6 +103,7 @@ inline void updateDistance(Distances &out, SFEVL53L1X &frontSensor, SFEVL53L1X &
     out.side_dt = now - out.side_prev_time;
     out.side_prev_time = now;
     out.side = sideSensor.getDistance();
+    out.side_status = sideSensor.getRangeStatus();
     sideSensor.clearInterrupt();
     //out.side = getSensorDistance(sideSensor);
   }

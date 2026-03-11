@@ -58,7 +58,11 @@ void collect_temps(TemperatureData &temp_values){
 
 void collect_dist(DistanceData &dist_data){
     if(cur_dists.front_updated){
-        dist_data.values[dist_data.index].front = cur_dists.front;
+        if (cur_dists.front_status == 4 && cur_dists.front == 0){ //Target is out of range
+            dist_data.values[dist_data.index].front = 1200;
+        } else {
+            dist_data.values[dist_data.index].front = cur_dists.front;
+        }
     } else if(pred_dists.front_updated) {
         dist_data.values[dist_data.index].front = pred_dists.front;
     } else {

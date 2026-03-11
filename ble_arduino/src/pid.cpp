@@ -121,7 +121,11 @@ float updatePID(PIDController& pid){
 // Return the current if it has been updated this cycle, otherwise return the previous
 float readFrontDist() { 
     if(cur_dists.front_updated){
-        return (float)cur_dists.front;
+        if (cur_dists.front_status == 4 && cur_dists.front == 0){ //target is way out of range
+            return 12000.0f; // max in short mode
+        } else {
+            return (float)cur_dists.front;
+        }
     } else if (pred_dists.front_updated){
         return (float)pred_dists.front;
     }

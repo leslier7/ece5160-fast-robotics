@@ -135,7 +135,7 @@ loop()
             if(pid_controller.running){
                 pid_percent = updatePID(pid_controller);
 
-                //DEBUG_PRINTF("Front Sensor value: %d    PID value: %.2f\n", cur_dists.front , pid_percent);
+                DEBUG_PRINTF("Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", cur_dists.front, cur_dists.front_status, pid_percent);
                 
                 setBothMotors(pid_percent, pid_percent);
             }
