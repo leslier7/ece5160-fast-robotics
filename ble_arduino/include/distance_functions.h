@@ -19,6 +19,11 @@ struct Distances{
   unsigned long side_prev_time;
 };
 
+struct DistanceLog {
+    int16_t front;
+    int16_t side;
+};
+
 extern Distances cur_dists;
 extern Distances prev_dists;
 extern Distances pred_dists;

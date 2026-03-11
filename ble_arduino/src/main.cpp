@@ -23,6 +23,7 @@ unsigned long prev_time;
 
 PIDController pid_controller;
 float pid_percent;
+float commanded_percent;
 MotorSpeeds pid_speeds;
 
 // Interupt function
@@ -127,17 +128,22 @@ loop()
             bool imu_updated = updateIMU();
 
             updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
+            DEBUG_PRINTF("Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", cur_dists.front, cur_dists.front_status, pid_percent);
             //TODO make the prediction for the distance sensors
 
             pred_dists = predictDistances(cur_dists, prev_dists);
 
             // Handle PID        
             if(pid_controller.running){
-                pid_percent = updatePID(pid_controller);
 
-                DEBUG_PRINTF("Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", cur_dists.front, cur_dists.front_status, pid_percent);
-                
-                setBothMotors(pid_percent, pid_percent);
+                if(cur_dists.front_status == 4 && cur_dists.front < 2){ //target is very far away, run at constant speed
+                    commanded_percent = 40.0f;
+                    setBothMotors(commanded_percent, commanded_percent);
+                } else if (cur_dists.front < 5000){ // got valid sensor data, use PID. But only if values arent too high
+                    pid_percent = updatePID(pid_controller);
+                    commanded_percent = pid_percent;
+                    setBothMotors(pid_percent, pid_percent);
+                } 
             }
 
             //digitalWrite(LED_BUILTIN, imu_updated);

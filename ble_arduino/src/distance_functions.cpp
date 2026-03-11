@@ -82,8 +82,8 @@ bool setupBothSensors(SFEVL53L1X &front, SFEVL53L1X &side){
     }
 
     //TODO medium might be better, but that would require swapping libraries. This should make it faster though
-    front.setDistanceModeShort();
-    side.setDistanceModeShort();
+    //front.setDistanceModeShort();
+    //side.setDistanceModeShort();
 
     side.startRanging();
     front.startRanging();
@@ -96,7 +96,13 @@ Distances predictDistances(Distances &cur_dists, Distances &prev_dists){
 
     float slope_front = (cur_dists.front - prev_dists.front) / (float)cur_dists.front_dt;
 
-    pred.front = (int)(cur_dists.front + slope_front * (float)(millis() - cur_dists.front_prev_time));
+    float delta_front = cur_dists.front - prev_dists.front;
+    if (abs(delta_front) < 5){
+        pred.front = cur_dists.front;
+    } else {
+        pred.front = (int)(cur_dists.front + slope_front * (float)(millis() - cur_dists.front_prev_time));
+    }
+
     pred.front_updated = true;
 
     float slope_side = (cur_dists.side - prev_dists.side) / (float)cur_dists.side_dt;

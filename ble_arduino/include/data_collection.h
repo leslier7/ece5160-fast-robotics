@@ -17,7 +17,7 @@ struct TimeData {
 };
 
 struct TemperatureData {
-    int values[DATA_ARR_SIZE];
+    int values[15]; //I made this smaller since temp doesnt really matter, so save some ram. But removing it outright is a pain
     int index;
 };
 
@@ -27,7 +27,7 @@ struct IMUData {
 };
 
 struct DistanceData {
-    Distances values[DATA_ARR_SIZE];
+    DistanceLog values[DATA_ARR_SIZE];
     int index;
 };
 

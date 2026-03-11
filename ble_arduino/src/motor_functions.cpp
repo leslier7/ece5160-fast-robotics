@@ -73,7 +73,7 @@ MotorSpeeds getCurSpeeds(){
   if (motor_job.active) {
     return { (float)(motor_job.left_percent), (float)(motor_job.right_percent) };
   } else if (pid_controller.running){
-    return {pid_percent, pid_percent}; //TODO this isnt the best way of doing this, but should work for now
+    return {commanded_percent, commanded_percent}; //TODO this isnt the best way of doing this, but should work for now
   } else {
     return { 0.0f, 0.0f };
   }

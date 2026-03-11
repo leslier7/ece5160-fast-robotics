@@ -79,9 +79,24 @@ float updatePID(PIDController& pid){
         return 0.0f;
     }
     float error = measured - pid.setpoint;
-    float derivative_raw = -(measured - pid.prev_meas) / dt; // Calculated this way to eliminate derivative kick
 
-    float derivative = pid.alpha * pid.prev_deriv_filt + (1 - pid.alpha) * derivative_raw;
+    float derivative = pid.prev_deriv_filt;
+
+    // Only update D on a fresh front measurement
+    if (cur_dists.front_updated && cur_dists.front_dt > 0) {
+        float real_measured = (float)cur_dists.front;
+        float dt_real = cur_dists.front_dt / 1000.0f;
+
+        float derivative_raw = -(real_measured - pid.prev_meas) / dt_real;
+        derivative = pid.alpha * pid.prev_deriv_filt + (1.0f - pid.alpha) * derivative_raw;
+
+        pid.prev_meas = real_measured;
+        pid.prev_deriv_filt = derivative;
+    }
+
+    // float derivative_raw = -(measured - pid.prev_meas) / dt; // Calculated this way to eliminate derivative kick
+
+    // float derivative = pid.alpha * pid.prev_deriv_filt + (1 - pid.alpha) * derivative_raw;
 
     float p_term = pid.kp * error;
     float d_term = pid.kd * derivative;
@@ -121,11 +136,7 @@ float updatePID(PIDController& pid){
 // Return the current if it has been updated this cycle, otherwise return the previous
 float readFrontDist() { 
     if(cur_dists.front_updated){
-        if (cur_dists.front_status == 4 && cur_dists.front == 0){ //target is way out of range
-            return 12000.0f; // max in short mode
-        } else {
-            return (float)cur_dists.front;
-        }
+        return (float)cur_dists.front;
     } else if (pred_dists.front_updated){
         return (float)pred_dists.front;
     }
