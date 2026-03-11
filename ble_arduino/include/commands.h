@@ -33,7 +33,8 @@ enum CommandTypes
     SET_PID_VALUES,
     SET_SETPOINT,
     START_PID,
-    STOP_PID
+    STOP_PID,
+    GET_DRIVE_DATA
 };
 
 void handle_command();

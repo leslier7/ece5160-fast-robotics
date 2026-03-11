@@ -30,6 +30,8 @@ extern ICM_20948_I2C myICM;
 
 bool initIMU(ICM_20948_I2C &imu);
 
+bool initDMP(ICM_20948_I2C &imu);
+
 void printPaddedInt16b(int16_t val);
 
 void printFormattedFloat(float val, uint8_t leading, uint8_t decimals);
@@ -67,5 +69,9 @@ inline float calculatePitch(ICM_20948_I2C *sensor) {
 inline float calculateRoll(ICM_20948_I2C *sensor) {
     return atan2(sensor->accY(), sensor->accZ()) * 57.295779513f; // roll (in deg)
 }
+
+void updateYaw(float *yaw, ICM_20948_I2C &sensor);
+
+void updateDMP(Attitude *attitude, ICM_20948_I2C &sensor);
 
 #endif //LAB2_IMU_FUNCTIONS_H

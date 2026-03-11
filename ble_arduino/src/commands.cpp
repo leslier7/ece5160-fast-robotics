@@ -27,6 +27,7 @@ static bool handle_set_pid_values();
 static bool handle_set_setpoint();
 static bool handle_start_pid();
 static bool handle_stop_pid();
+static bool handle_get_drive_data();
 
 void
 handle_command()
@@ -132,6 +133,9 @@ handle_command()
             break;
         case STOP_PID:
             handle_stop_pid();
+            break;
+        case GET_DRIVE_DATA:
+            handle_get_drive_data();
             break;
         
         /* 
@@ -463,6 +467,10 @@ static bool handle_start_recording() {
     clearData(time_data);
     clearData(temp_data);
     clearData(imu_data);
+
+    clearData(yaw_data);
+    clearData(dist_data);
+    clearData(motor_data);
     recording = true;
 
     EString temp_string = EString();
@@ -563,7 +571,7 @@ static bool handle_get_all_readings() {
         int i = (start + k) % DATA_ARR_SIZE; // chronological order
 
         char value_str[64];
-        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d:%f:%f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d:%.4f:%.4f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
 
         // Check if adding this value would exceed MAX_MSG_SIZE
         // Account for comma separator and null terminator
@@ -829,5 +837,67 @@ bool handle_stop_pid(){
     stopPID(pid_controller);
     stopBothMotors(); // if stopping PID, also stop the motors
 
+    return true;
+}
+
+//Send yaw, ToF values, and motor values
+bool handle_get_drive_data(){
+    DEBUG_PRINTLN("Sending drive readings");
+
+    //Stop motors when sending values
+    stopBothMotors();
+    abortMotorQueue(true);
+
+    EString temp_string = EString();
+    int tx_result = -1;
+
+
+    recording = false; // Pause recording while transmitting
+    int start = dist_data.index;
+    for(int k = 0; k < DATA_ARR_SIZE; k++){
+        int i = (start + k) % DATA_ARR_SIZE; // chronological order
+
+        char value_str[64];
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%d:%d:%.4f:%.4f", time_data.values[i], yaw_data.value[i], dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
+
+        // Check if adding this value would exceed MAX_MSG_SIZE
+        // Account for comma separator and null terminator
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            // Send current packet before it overflows
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            DEBUG_PRINT("Sent packet: ");
+            DEBUG_PRINTLN(temp_string.c_str());
+            
+            // Small delay to allow BLE stack to process
+            delay(10);
+            
+            // Reset for next packet
+            temp_string.clear();
+        }
+        
+        // Add comma if not first item in current packet
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    // Send any remaining data
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        DEBUG_PRINT("Sent packet: ");
+        DEBUG_PRINTLN(temp_string.c_str());
+        delay(10);
+    }
+
+    // Send end marker
+    tx_result = tx_characteristic_string.writeValue("end");
+    DEBUG_PRINT("Serial Transmission Result: ");
+    DEBUG_PRINTLN(tx_result);
+    DEBUG_PRINTLN("Finished sending array");
+
+    recording = true; // Resume recording after transmit
     return true;
 }

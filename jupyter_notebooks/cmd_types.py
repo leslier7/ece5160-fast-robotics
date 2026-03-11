@@ -22,3 +22,4 @@ class CMD(Enum):
     SET_SETPOINT = 18
     START_PID = 19
     STOP_PID = 20
+    GET_DRIVE_DATA = 21

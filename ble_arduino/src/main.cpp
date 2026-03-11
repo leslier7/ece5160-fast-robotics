@@ -47,6 +47,7 @@ setup()
 
     initIMU(myICM);
 
+    initDMP(myICM);
 
     //TODO check if sensors already have unique IDs, then just begin
     // bool side_setup = setupSensor(distanceSensorSide, true);
@@ -106,6 +107,7 @@ setup()
 }
 
 
+static unsigned long prev_debug_ms = 0;
 
 void
 loop()
@@ -125,13 +127,21 @@ loop()
         // While central is connected
         while (central.connected()) {
             
-            bool imu_updated = updateIMU();
+            //bool imu_updated = updateIMU();
 
             updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
-            DEBUG_PRINTF("Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", cur_dists.front, cur_dists.front_status, pid_percent);
+            //DEBUG_PRINTF("Yaw value: %f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", yaw, cur_dists.front, cur_dists.front_status, pid_percent);
             //TODO make the prediction for the distance sensors
 
             pred_dists = predictDistances(cur_dists, prev_dists);
+
+            updateYaw(&yaw, myICM);
+
+            if (millis() - prev_debug_ms >= 100) {
+                DEBUG_PRINTF("Yaw value: %.2f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n",
+                            yaw, cur_dists.front, cur_dists.front_status, pid_percent);
+                prev_debug_ms = millis();
+            }
 
             // Handle PID        
             if(pid_controller.running){
@@ -152,7 +162,8 @@ loop()
             
             // Collect IMU data
             if(recording){
-                collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
+                //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
+                collectDriveData(time_data, yaw_data, dist_data, motor_data);
             }
             
             // if(cur_dists.front_updated){

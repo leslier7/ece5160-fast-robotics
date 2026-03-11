@@ -18,6 +18,8 @@ TemperatureData temp_data = { {}, 0};
 
 IMUData imu_data = { {}, 0};
 
+YawData yaw_data = { {}, 0};
+
 DistanceData dist_data = { {}, 0};
 
 MotorData motor_data = {{}, 0};
@@ -29,6 +31,8 @@ Attitude gyro_attitude = {0, 0, 0};
 Attitude accel_attitude = {0, 0, 0};
 
 CompFilter comp_filter = {{0,0,0}, 0.1, 0.03f}; //dt is dynamically updated later
+
+float yaw = 0;
 
 Distances dists = {-1, -1};
 
@@ -143,6 +147,11 @@ void collect_imu(IMUData &imu_values){
     imu_values.index = (imu_values.index + 1) % DATA_ARR_SIZE;
 }
 
+void collect_yaw(YawData &yaw_values){
+    yaw_values.value[yaw_values.index] = yaw;
+    yaw_values.index = (yaw_values.index + 1) % DATA_ARR_SIZE;
+}
+
 void collectIMUTempData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values){
     collect_time(time_values);
     collect_temps(temp_values);
@@ -161,6 +170,21 @@ void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu
     clearData(time_values);
     clearData(temp_values);
     clearData(imu_values);
+    clearData(dist_values);
+    clearData(motor_values);
+}
+
+//Collect only the relevant data for the system.
+void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+    collect_time(time_values);
+    collect_yaw(yaw_values);
+    collect_dist(dist_values);
+    collect_motor(motor_values);
+}
+
+void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+    clearData(time_values);
+    clearData(yaw_values);
     clearData(dist_values);
     clearData(motor_values);
 }
