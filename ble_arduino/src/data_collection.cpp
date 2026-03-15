@@ -154,13 +154,13 @@ void collect_yaw(YawData &yaw_values){
 
 void collectIMUTempData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values){
     collect_time(time_values);
-    collect_temps(temp_values);
+    //collect_temps(temp_values);
     collect_imu(imu_values);
 }
 
 void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values){
     collect_time(time_values);
-    collect_temps(temp_values);
+    //collect_temps(temp_values);
     collect_imu(imu_values);
     collect_dist(dist_values);
     collect_motor(motor_values);
