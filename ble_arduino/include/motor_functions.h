@@ -28,7 +28,7 @@ struct MotorSpeeds {
     float right_percent;
 };
 
-constexpr float MOTOR_LOWER_BAND = 10.0f;
+constexpr float MOTOR_LOWER_BAND = 5.0f;
 constexpr float MOTOR_UPPER_BAND = 20.0f;
 constexpr float MOTOR_BRAKE_CMD = 1000.0f;
 
@@ -199,13 +199,16 @@ inline bool driveMotorCommand(Channel chan, float cmd) {
 
 
 inline float applyMotorBand(float m) {
-    const float LOWER_BAND = 10.0f;
+    const float LOWER_BAND = 5.0f;
     const float UPPER_BAND = 20.0f;
+    const float NEG_LOWER_BAND = 5.0f;
+    const float NEG_UPPER_BAND = 27.0f;
 
     if (m > 0 && m < LOWER_BAND) return MOTOR_BRAKE_CMD;
     if (m >= LOWER_BAND && m < UPPER_BAND) return UPPER_BAND;
 
-    if (m < 0 && m > -UPPER_BAND) return -UPPER_BAND;
+    if (m < 0 && m > -NEG_LOWER_BAND) return MOTOR_BRAKE_CMD;
+    if (m <= -NEG_LOWER_BAND && m > -NEG_UPPER_BAND) return -NEG_UPPER_BAND;
 
     return m;
 }
