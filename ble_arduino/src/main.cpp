@@ -26,6 +26,8 @@ float pid_percent;
 float commanded_percent;
 MotorSpeeds pid_speeds;
 
+bool bothSetup = false;
+
 // Interupt function
 void timerISR(void)
 {
@@ -53,8 +55,10 @@ setup()
     // bool side_setup = setupSensor(distanceSensorSide, true);
     // bool front_setup = setupSensor(distanceSensorFront, false);
 
-    bool bothSetup = setupBothSensors(distanceSensorFront, distanceSensorSide);
+    bothSetup = setupBothSensors(distanceSensorFront, distanceSensorSide);
 
+    //Only block startup with ToF
+    #ifdef TOF
     if(!bothSetup){
         digitalWrite(LED_BUILTIN, HIGH);
         DEBUG_PRINTF("Failed to start both distance sensors");
@@ -62,9 +66,15 @@ setup()
     } else {
         DEBUG_PRINTLN("Started both distance sensors");
     }
+    #endif
 
-    //TODO make it easier to modify the PID values
+    #ifdef TOF
+    //ToF PID
     initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readFrontDist, 1);
+    #elif  defined(IMU)
+    //ToF PID
+    initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readYaw, 1);
+    #endif
     
     for (int i = 0; i < 3; i++) {
         digitalWrite(LED_BUILTIN, HIGH);
@@ -129,23 +139,28 @@ loop()
             
             //bool imu_updated = updateIMU();
 
-            updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
-            //DEBUG_PRINTF("Yaw value: %f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", yaw, cur_dists.front, cur_dists.front_status, pid_percent);
-            //TODO make the prediction for the distance sensors
+            if(bothSetup){
+                updateDistance(cur_dists, distanceSensorFront, distanceSensorSide);
+                //DEBUG_PRINTF("Yaw value: %f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n", yaw, cur_dists.front, cur_dists.front_status, pid_percent);
+            }
 
             pred_dists = predictDistances(cur_dists, prev_dists);
 
             updateYaw(&yaw, myICM);
 
+            #ifdef DEBUG_ENABLED
             if (millis() - prev_debug_ms >= 100) {
                 DEBUG_PRINTF("Yaw value: %.2f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n",
                             yaw, cur_dists.front, cur_dists.front_status, pid_percent);
                 prev_debug_ms = millis();
             }
+            #endif
 
             // Handle PID        
             if(pid_controller.running){
 
+                #ifdef TOF
+                // ToF PID
                 if(cur_dists.front_status == 4 && cur_dists.front < 2){ //target is very far away, run at constant speed
                     commanded_percent = 40.0f;
                     setBothMotors(commanded_percent, commanded_percent);
@@ -154,6 +169,13 @@ loop()
                     commanded_percent = pid_percent;
                     setBothMotors(pid_percent, pid_percent);
                 } 
+                #elif defined(IMU)
+                // IMU PID
+                pid_percent = updatePID(pid_controller);
+                
+                setBothMotors(pid_percent, -pid_percent); //Spin motors in oposite directions
+                
+                #endif
             }
 
             //digitalWrite(LED_BUILTIN, imu_updated);

@@ -2,6 +2,7 @@
 #include "pid.h"
 #include "distance_functions.h"
 #include "imu_functions.h"
+#include "data_collection.h"
 
 void initPID(PIDController& pid, float kp, float ki, float kd, float alpha, SensorReadFn sensor_fn, float windup_max) {
     pid.kp = kp;
@@ -80,6 +81,9 @@ float updatePID(PIDController& pid){
     }
     float error = measured - pid.setpoint;
 
+    
+
+    #ifdef TOF
     float derivative = pid.prev_deriv_filt;
 
     // Only update D on a fresh front measurement
@@ -93,6 +97,13 @@ float updatePID(PIDController& pid){
         pid.prev_meas = real_measured;
         pid.prev_deriv_filt = derivative;
     }
+    #elif defined(IMU)
+    float derivative_raw = -(measured - pid.prev_meas) / dt;
+    float derivative = pid.alpha * pid.prev_deriv_filt + (1.0f - pid.alpha) * derivative_raw;
+
+    pid.prev_meas = measured;
+    pid.prev_deriv_filt = derivative;
+    #endif
 
     // float derivative_raw = -(measured - pid.prev_meas) / dt; // Calculated this way to eliminate derivative kick
 
@@ -130,7 +141,7 @@ float updatePID(PIDController& pid){
 
     // Clamp output to motor range
     //TODO make this full range later, but start slow
-    return constrain(output, -40.0f, 40.0f);
+    return constrain(output, -60.0f, 60.0f);
 }
 
 // Return the current if it has been updated this cycle, otherwise return the previous
@@ -150,4 +161,8 @@ float readSideDist()  {
         return (float)pred_dists.side;
     }
     return (float)prev_dists.side; 
+}
+
+float readYaw(){
+    return yaw;
 }

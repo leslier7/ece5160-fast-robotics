@@ -36,5 +36,6 @@ float updatePID(PIDController& pid);
 
 float readFrontDist();
 float readSideDist();
+float readYaw();
 
 #endif //PID_FUNCTIONS_H
