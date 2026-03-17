@@ -203,9 +203,9 @@ inline bool driveMotorCommand(Channel chan, float cmd) {
 
 inline float applyMotorBand(float m) {
     const float LOWER_BAND = 5.0f;
-    const float UPPER_BAND = 20.0f;
+    const float UPPER_BAND = 30.0f;
     const float NEG_LOWER_BAND = 5.0f;
-    const float NEG_UPPER_BAND = 27.0f;
+    const float NEG_UPPER_BAND = 35.0f;
 
     if (m > 0 && m < LOWER_BAND) return MOTOR_BRAKE_CMD;
     if (m >= LOWER_BAND && m < UPPER_BAND) return UPPER_BAND;

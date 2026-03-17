@@ -790,7 +790,9 @@ bool handle_set_setpoint(){
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
+    #ifdef TOF
     setpoint = setpoint * 10; // cm to mm
+    #endif
 
     setSetpoint(pid_controller, setpoint);
 
@@ -853,6 +855,15 @@ bool handle_get_drive_data(){
 
 
     recording = false; // Pause recording while transmitting
+
+    // Send setpoint once
+    char setpoint_str[32];
+    snprintf(setpoint_str, sizeof(setpoint_str), "setpoint:%.3f", pid_controller.setpoint);
+    tx_result = tx_characteristic_string.writeValue(setpoint_str);
+    DEBUG_PRINT("Sent setpoint packet: ");
+    DEBUG_PRINTLN(setpoint_str);
+    delay(10);
+
     int start = dist_data.index;
     for(int k = 0; k < DATA_ARR_SIZE; k++){
         int i = (start + k) % DATA_ARR_SIZE; // chronological order

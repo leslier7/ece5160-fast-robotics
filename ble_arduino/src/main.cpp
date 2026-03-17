@@ -148,14 +148,6 @@ loop()
 
             updateYaw(&yaw, myICM);
 
-            #ifdef DEBUG_ENABLED
-            if (millis() - prev_debug_ms >= 100) {
-                DEBUG_PRINTF("Yaw value: %.2f  Front Sensor value: %d  Front Sensor status: %d  PID value: %.2f\n",
-                            yaw, cur_dists.front, cur_dists.front_status, pid_percent);
-                prev_debug_ms = millis();
-            }
-            #endif
-
             // Handle PID        
             if(pid_controller.running){
 
@@ -178,15 +170,36 @@ loop()
                 #endif
             }
 
+            
+
             //digitalWrite(LED_BUILTIN, imu_updated);
 
             serviceMotorJob();
             
             // Collect IMU data
             if(recording){
-                //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
-                collectDriveData(time_data, yaw_data, dist_data, motor_data);
+
+                // Record on a timer
+                if ((millis() - prev_time) >= 4) { //Record 7.5 seconds of data
+                    //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
+                    collectDriveData(time_data, yaw_data, dist_data, motor_data);
+                }
+
+                
+                
             }
+
+            // #ifdef DEBUG_ENABLED
+            // if (millis() - prev_debug_ms >= 100) {
+            //     //DEBUG_PRINTF("Yaw value: %.2f  PID value: %.2f\n", yaw, pid_percent);
+
+            //     int last = (yaw_data.index + DATA_ARR_SIZE - 1) % DATA_ARR_SIZE;
+            //     DEBUG_PRINTF("live_yaw=%.2f recorded_yaw=%.2f\n", yaw, yaw_data.value[last]);
+            //     prev_debug_ms = millis();
+            // }
+            // #endif
+
+            
             
             // if(cur_dists.front_updated){
             //     prev_dists.front = cur_dists.front;

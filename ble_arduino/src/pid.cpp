@@ -3,6 +3,7 @@
 #include "distance_functions.h"
 #include "imu_functions.h"
 #include "data_collection.h"
+#include "debug.h"
 
 void initPID(PIDController& pid, float kp, float ki, float kd, float alpha, SensorReadFn sensor_fn, float windup_max) {
     pid.kp = kp;
@@ -79,8 +80,14 @@ float updatePID(PIDController& pid){
     if (measured == -1){ //TODO this might not work for all sensor
         return 0.0f;
     }
-    float error = measured - pid.setpoint;
 
+    #ifdef TOF
+    float error = measured - pid.setpoint;
+    #elif defined(IMU)
+    float error = pid.setpoint - measured;
+    if (error > 180.0f) error -= 360.0f;
+    if (error < -180.0f) error += 360.0f;
+    #endif
     
 
     #ifdef TOF
@@ -98,11 +105,12 @@ float updatePID(PIDController& pid){
         pid.prev_deriv_filt = derivative;
     }
     #elif defined(IMU)
-    float derivative_raw = -(measured - pid.prev_meas) / dt;
-    float derivative = pid.alpha * pid.prev_deriv_filt + (1.0f - pid.alpha) * derivative_raw;
+    float delta_meas = measured - pid.prev_meas;
+    if (delta_meas > 180.0f) delta_meas -= 360.0f;
+    if (delta_meas < -180.0f) delta_meas += 360.0f;
 
-    pid.prev_meas = measured;
-    pid.prev_deriv_filt = derivative;
+    float derivative_raw = -delta_meas / dt;
+    float derivative = pid.alpha * pid.prev_deriv_filt + (1.0f - pid.alpha) * derivative_raw;
     #endif
 
     // float derivative_raw = -(measured - pid.prev_meas) / dt; // Calculated this way to eliminate derivative kick
@@ -133,6 +141,8 @@ float updatePID(PIDController& pid){
         output = p_term + i_term + d_term;
     }
 
+    
+
     pid.prev_error = error;
     pid.prev_time_ms = now;
     pid.prev_meas = measured;
@@ -141,7 +151,11 @@ float updatePID(PIDController& pid){
 
     // Clamp output to motor range
     //TODO make this full range later, but start slow
-    return constrain(output, -60.0f, 60.0f);
+    output = constrain(output, -60.0f, 60.0f);
+    #ifdef DEBUG_ENABLED
+    DEBUG_PRINTF("p: %.3f, i: %.3f, d: %.3f, out: %.3f\n", p_term, i_term, d_term, output);
+    #endif
+    return output;
 }
 
 // Return the current if it has been updated this cycle, otherwise return the previous
