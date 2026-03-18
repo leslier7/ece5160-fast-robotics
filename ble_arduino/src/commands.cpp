@@ -910,5 +910,6 @@ bool handle_get_drive_data(){
     DEBUG_PRINTLN("Finished sending array");
 
     recording = true; // Resume recording after transmit
+    clearDriveData(time_data, yaw_data, dist_data, motor_data);
     return true;
 }

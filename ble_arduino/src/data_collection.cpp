@@ -61,31 +61,34 @@ void collect_temps(TemperatureData &temp_values){
 }
 
 void collect_dist(DistanceData &dist_data){
-    int front_to_log;
+    // Previous prediction code
+    //int front_to_log;
 
-    if (cur_dists.front_updated) {
-        if (cur_dists.front_status == 0) {
-            front_to_log = cur_dists.front;
-        } else if (cur_dists.front_status == 4 && cur_dists.front == 0) {
-            // out of measurable range in short mode
-            front_to_log = 1200;
-        } else {
-            // current update exists but is not usable
-            // fall back to prediction if available, otherwise previous
-            if (pred_dists.front_updated) {
-                front_to_log = pred_dists.front;
-            } else {
-                front_to_log = prev_dists.front;
-            }
-        }
-    } else if (pred_dists.front_updated) {
-        front_to_log = pred_dists.front;
-    } else {
-        // hold the previous logged value rather than injecting -1 into the distance trace
-        front_to_log = dist_data.values[(dist_data.index + DATA_ARR_SIZE - 1) % DATA_ARR_SIZE].front;
-    }
+    // if (cur_dists.front_updated) {
+    //     if (cur_dists.front_status == 0) {
+    //         front_to_log = cur_dists.front;
+    //     } else if (cur_dists.front_status == 4 && cur_dists.front == 0) {
+    //         // out of measurable range in short mode
+    //         front_to_log = 1200;
+    //     } else {
+    //         // current update exists but is not usable
+    //         // fall back to prediction if available, otherwise previous
+    //         if (pred_dists.front_updated) {
+    //             front_to_log = pred_dists.front;
+    //         } else {
+    //             front_to_log = prev_dists.front;
+    //         }
+    //     }
+    // } else if (pred_dists.front_updated) {
+    //     front_to_log = pred_dists.front;
+    // } else {
+    //     // hold the previous logged value rather than injecting -1 into the distance trace
+    //     front_to_log = dist_data.values[(dist_data.index + DATA_ARR_SIZE - 1) % DATA_ARR_SIZE].front;
+    // }
 
-    dist_data.values[dist_data.index].front = front_to_log;
+    dist_data.values[dist_data.index].front = cur_dists.front;
+    
+    
 
     // if(cur_dists.front_updated){
     //     if (cur_dists.front_status == 4 && cur_dists.front == 0){ //Target is out of range
