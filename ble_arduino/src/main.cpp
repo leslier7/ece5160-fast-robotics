@@ -184,9 +184,6 @@ loop()
                     //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
                     collectDriveData(time_data, yaw_data, dist_data, motor_data);
                 }
-
-                
-                
             }
 
             // #ifdef DEBUG_ENABLED

@@ -1,6 +1,6 @@
 ---
-title: "Lab 5: PID Control"
-date: 2026-03-17
+title: "Lab 5: ToF PID Control"
+date: 2026-03-04
 description: "Using PID controllers with the ToF sensors to control the car"
 cover: "../../assets/lab5-cover.jpg"
 ---
@@ -22,7 +22,7 @@ One thing to note about my implementation is that I chose not to send the PID co
 ### Lab Tasks
 
 #### PID
-The first thing that I had to decide was what kind of controller to use. Because I am a 5000-level student, I had the choice of using a PI or a PID controller. I chose to use a PID controller because it would allow me to achieve a better response and (theoretically) no steady-state error. I say theoretically because I would need to tune it well in order to actually achieve those goals. I had also made a PID controller in a different class, so I just had to port the code over and modify it for this purpose. Because I knew we would need to use the controller for Lab 6 as well, I made a generic PID controller, so I can easily make more. The PID controller code is below.
+The first thing that I had to decide was what kind of controller to use. Because I am a 5000-level student, I had the choice of using a PI or a PID controller. I chose to use a PID controller because it would allow me to achieve a better response and (theoretically) no steady-state error. I say theoretically because I would need to tune it well in order to actually achieve those goals. I had also made a PID controller in a different class, so I just had to port the code over and modify it for this purpose. Because I knew we would need to use the controller for Lab 6 as well, I made a generic PID controller, so I can easily make more. I also added Python functions so that I could easily set the gains and setpoint via Bluetooth. The PID controller code is below.
 
 ```cpp
 struct PIDController {
@@ -198,6 +198,20 @@ For the final output of the controller, I still think it needed a bit of tuning.
   </figure>
 </div>
 
+I also tested to make sure that the robot tried to return to its setpoint if I disturbed it. Those results are shown in the video below.
+
+<figure style="max-width: 720px; margin: 1rem 0;">
+  <iframe
+    width="100%"
+    height="405"
+    src="https://www.youtube-nocookie.com/embed/4ZgP5Oo0Lrw"
+    title="Lab 5 PID video"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+</figure>
+
 ### 5000 Level Tasks
 The 5000 level task was to implement the integrator windup protection which I briefly explained earlier. The reason for this protection is that if the setpoint changes suddenly (like me changing it mid-run), the integral term will change wildly. It also means that if you hold the car and it doesn't have protection, the term will grow rapidly and cause the car to slam into the wall. Figure 3 shows the motor output with no windup protection. It reaches -400, which is not a valid control signal (it also shows a better graph of the prediction problem). And the video under it shows what the car is trying to do (I put it on a block so it didn’t slam into the wall)
 
@@ -219,3 +233,6 @@ The 5000 level task was to implement the integrator windup protection which I br
     allowfullscreen>
   </iframe>
 </figure>
+
+### Collaborations
+This week, I discussed content with Immanuel Koshy. I didn't use any previous years as reference.
