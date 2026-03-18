@@ -105,6 +105,8 @@ struct {
 //     return true;
 // }
 
+void setCurSpeeds(float left_percent, float right_percent);
+
 inline void stopMotor(Channel chan){
 
     int pin1, pin2;
@@ -119,6 +121,8 @@ inline void stopMotor(Channel chan){
 }
 
 inline void stopBothMotors(){
+    setCurSpeeds(0,0);
+
     analogWrite(L1, 0);
     analogWrite(R1, 0);
     analogWrite(L2, 0);
@@ -197,12 +201,11 @@ inline bool driveMotorCommand(Channel chan, float cmd) {
     return setMotor(chan, cmd);
 }
 
-
 inline float applyMotorBand(float m) {
     const float LOWER_BAND = 5.0f;
-    const float UPPER_BAND = 20.0f;
+    const float UPPER_BAND = 30.0f;
     const float NEG_LOWER_BAND = 5.0f;
-    const float NEG_UPPER_BAND = 27.0f;
+    const float NEG_UPPER_BAND = 35.0f;
 
     if (m > 0 && m < LOWER_BAND) return MOTOR_BRAKE_CMD;
     if (m >= LOWER_BAND && m < UPPER_BAND) return UPPER_BAND;
@@ -213,9 +216,11 @@ inline float applyMotorBand(float m) {
     return m;
 }
 
-inline bool setBothMotors(float rightMotor, float leftMotor){
+inline bool setBothMotors(float leftMotor, float rightMotor){
     if (rightMotor > 100 || rightMotor < -100) return false;
     if (leftMotor > 100 || leftMotor < -100) return false;
+
+    setCurSpeeds(leftMotor, rightMotor); // set the recorded motor speed
 
     //TODO might have to update this to make it more robust
     rightMotor = applyMotorBand(rightMotor);

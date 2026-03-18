@@ -17,12 +17,17 @@ struct TimeData {
 };
 
 struct TemperatureData {
-    int values[15]; //I made this smaller since temp doesnt really matter, so save some ram. But removing it outright is a pain
+    int values[3]; //I made this smaller since temp doesnt really matter, so save some ram. But removing it outright is a pain
     int index;
 };
 
 struct IMUData {
     Attitude values[DATA_ARR_SIZE];
+    int index;
+};
+
+struct YawData {
+    float value[DATA_ARR_SIZE];
     int index;
 };
 
@@ -46,6 +51,10 @@ extern DistanceData dist_data;
 
 extern CompFilter comp_filter;
 
+extern YawData yaw_data;
+
+extern float yaw;
+
 extern MotorData motor_data;
 
 extern bool recording;
@@ -66,7 +75,11 @@ void collect_motor(MotorData &motor_values);
 
 void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_data, MotorData &motor_values);
 
+void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values);
+
 void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values);
+
+void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values);
 
 // Generic version
 template<typename T, typename V>

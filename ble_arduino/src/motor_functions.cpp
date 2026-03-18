@@ -8,6 +8,8 @@ static bool motor_queue_enabled = false;
 
 MotorJobQueue motor_q;
 
+MotorSpeeds cur_speeds;
+
 void startMotorQueue() {
   motor_queue_enabled = true;
 }
@@ -26,7 +28,7 @@ static void beginJob(const MotorJob& j) {
   motor_job.right_percent = j.right_percent;
   motor_job.left_percent  = j.left_percent;
   motor_job.stop_at_ms    = millis() + j.duration_ms;
-  setBothMotors(j.right_percent, j.left_percent);
+  setBothMotors(j.left_percent, j.right_percent);
 }
 
 void serviceMotorJob() {
@@ -69,11 +71,16 @@ void abortMotorQueue(bool clear_pending) {
   if (clear_pending) motor_q.clear();
 }
 
+void setCurSpeeds(float left_percent, float right_percent){
+  cur_speeds.left_percent = left_percent;
+  cur_speeds.right_percent = right_percent;
+}
+
 MotorSpeeds getCurSpeeds(){
   if (motor_job.active) {
     return { (float)(motor_job.left_percent), (float)(motor_job.right_percent) };
   } else if (pid_controller.running){
-    return {commanded_percent, commanded_percent}; //TODO this isnt the best way of doing this, but should work for now
+    return {cur_speeds.left_percent, cur_speeds.right_percent};
   } else {
     return { 0.0f, 0.0f };
   }
