@@ -1,8 +1,10 @@
 #include "commands.h"
 #include "ble_config.h"
+#include "globals.h"
 #include "data_collection.h"
 #include "debug.h"
 #include "motor_functions.h"
+#include "pid.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -21,6 +23,10 @@ static bool handle_get_dist_readings();
 static bool handle_get_all_readings();
 static bool handle_set_motor_job();
 static bool handle_set_motor_sequence();
+static bool handle_set_pid_values();
+static bool handle_set_setpoint();
+static bool handle_start_pid();
+static bool handle_stop_pid();
 
 void
 handle_command()
@@ -115,6 +121,19 @@ handle_command()
         case SET_MOTOR_SEQUENCE:
             handle_set_motor_sequence();
             break;
+        case SET_PID_VALUES:
+            handle_set_pid_values();
+            break;
+        case SET_SETPOINT:
+            handle_set_setpoint();
+            break;
+        case START_PID:
+            handle_start_pid();
+            break;
+        case STOP_PID:
+            handle_stop_pid();
+            break;
+        
         /* 
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
@@ -530,6 +549,10 @@ static bool handle_get_dist_readings() {
 static bool handle_get_all_readings() {
     DEBUG_PRINTLN("Sending all readings");
 
+    //Stop motors when sending values
+    stopBothMotors();
+    abortMotorQueue(true);
+
     EString temp_string = EString();
     int tx_result = -1;
 
@@ -540,7 +563,7 @@ static bool handle_get_all_readings() {
         int i = (start + k) % DATA_ARR_SIZE; // chronological order
 
         char value_str[64];
-        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side);
+        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%.3f:%.3f:%d:%d:%.3f:%.3f", time_data.values[i], imu_data.values[i].pitch, imu_data.values[i].roll, imu_data.values[i].yaw, dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
 
         // Check if adding this value would exceed MAX_MSG_SIZE
         // Account for comma separator and null terminator
@@ -666,4 +689,145 @@ static bool handle_set_motor_sequence() {
     startMotorQueue();
 
     return jobs_queued > 0;
+}
+
+bool handle_set_pid_values(){
+    float kp, ki, kd, alpha, windup_max;
+    bool success;
+    bool alpha_changed = false;
+    bool windup_changed = false;
+    char char_arr[MAX_MSG_SIZE];
+
+    success = robot_cmd.get_next_value(kp);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(ki);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(kd);
+    if (!success)
+        return false;
+
+    // This one is optional
+    success = robot_cmd.get_next_value(alpha);
+    if (!success){
+        DEBUG_PRINTLN("Alpha not changed");
+    } else {
+        alpha_changed = true;
+    }
+
+    // This one is optional
+    success = robot_cmd.get_next_value(windup_max);
+    if (!success){
+        DEBUG_PRINTLN("Max windup not changed");
+    } else {
+        windup_changed = true;
+    }
+
+    if(!alpha_changed && !windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f", kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,a:%f", kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,w_m:%f", kp, ki, kd, windup_max); // This should never happen
+    } else {
+        snprintf(char_arr, MAX_MSG_SIZE, "p:%f,i:%f,d:%f,a:%f,w_m:%f", kp, ki, kd, alpha, windup_max); 
+    }
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot received: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    if(!alpha_changed && !windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        changePIDValues(pid_controller, kp, ki, kd, pid_controller.alpha, windup_max); //This should never happen
+    } else {
+        changePIDValues(pid_controller, kp, ki, kd, alpha, windup_max); 
+    }
+
+    return true;
+}
+
+bool handle_set_setpoint(){
+    float setpoint;
+    bool success;
+    char char_arr[MAX_MSG_SIZE];
+
+    // Extract first setpoint from command string
+    success = robot_cmd.get_next_value(setpoint);
+    if (!success)
+        return false;
+
+    snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+    
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Robot received: ");
+    temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    setpoint = setpoint * 10; // cm to mm
+
+    setSetpoint(pid_controller, setpoint);
+
+    return true;
+}
+
+bool handle_start_pid(){
+    bool success;
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+    
+    
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Starting PID control");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    startPID(pid_controller);
+
+    return true;
+}
+
+bool handle_stop_pid(){
+    bool success;
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Stopping PID control");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    stopPID(pid_controller);
+    stopBothMotors(); // if stopping PID, also stop the motors
+
+    return true;
 }
