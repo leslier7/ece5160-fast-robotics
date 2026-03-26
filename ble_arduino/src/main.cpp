@@ -13,6 +13,7 @@
 #include "distance_functions.h"
 #include "motor_functions.h"
 #include "pid.h"
+#include "drift.h"
 
 //////////// Global Variables ////////////
 SFEVL53L1X distanceSensorFront;
@@ -173,18 +174,23 @@ loop()
                 #endif
             }
 
+            // Handle Drift
+            if(drift_running) {
+                driftStateTick();
+            }
             
 
             //digitalWrite(LED_BUILTIN, imu_updated);
 
             //Used for lab 7 to brake the car before it hits the wall
             //TODO check and make sure that this data is actually valid
-            if(cur_dists.front > 600){
-                serviceMotorJob();
-            } else {
-                brakeBothMotors();
-            }
+            // if(cur_dists.front > 600){
+            //     serviceMotorJob();
+            // } else {
+            //     brakeBothMotors();
+            // }
             
+            serviceMotorJob();
             
             // Collect IMU data
             if(recording){

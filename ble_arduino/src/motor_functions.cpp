@@ -71,6 +71,14 @@ void abortMotorQueue(bool clear_pending) {
   if (clear_pending) motor_q.clear();
 }
 
+bool isMotorQueueBusy() {
+    return motor_queue_enabled;
+}
+
+bool isMotorQueueIdle() {
+    return !motor_queue_enabled;
+}
+
 void setCurSpeeds(float left_percent, float right_percent){
   cur_speeds.left_percent = left_percent;
   cur_speeds.right_percent = right_percent;

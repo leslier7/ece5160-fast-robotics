@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "motor_functions.h"
 #include "pid.h"
+#include "drift.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -28,6 +29,7 @@ static bool handle_set_setpoint();
 static bool handle_start_pid();
 static bool handle_stop_pid();
 static bool handle_get_drive_data();
+static bool handle_do_drift();
 
 void
 handle_command()
@@ -136,6 +138,9 @@ handle_command()
             break;
         case GET_DRIVE_DATA:
             handle_get_drive_data();
+            break;
+        case DO_DRIFT:
+            handle_do_drift();
             break;
         
         /* 
@@ -664,6 +669,8 @@ static bool handle_set_motor_sequence() {
     bool success;
     int jobs_queued = 0;
 
+    abortMotorQueue(true); //Clear the current queue
+
     // Keep reading triplets until we run out of tokens
     while (true) {
         success = robot_cmd.get_next_value(left_percent);
@@ -680,7 +687,9 @@ static bool handle_set_motor_sequence() {
 
         DEBUG_PRINTF("Left percent: %f   Right percent: %f   duration (ms): %d\n", left_percent, right_percent, duration_ms);
 
-        if (!queueMotorJob(right_percent, left_percent, duration_ms)) {
+        
+
+        if (!queueMotorJob(right_percent, left_percent, duration_ms)) { //Shouldn't hit the error state, but still
             DEBUG_PRINTLN("Motor queue full!");
             break;
         }
@@ -911,5 +920,27 @@ bool handle_get_drive_data(){
 
     recording = true; // Resume recording after transmit
     clearDriveData(time_data, yaw_data, dist_data, motor_data);
+    return true;
+}
+
+bool handle_do_drift(){
+    bool success;
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Doing drift");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    stopPID(pid_controller);
+    abortMotorQueue(true);
+    startDrift();
+
     return true;
 }
