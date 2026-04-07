@@ -61,8 +61,8 @@ void driftStateTick(){
             if (yaw_error < -180.0f) yaw_error += 360.0f;
 
             bool crossed_target =
-                fabs(prev_yaw_error) < 30.0f &&
-                fabs(yaw_error) < 30.0f &&
+                fabs(prev_yaw_error) < 45.0f &&
+                fabs(yaw_error) < 45.0f &&
                 ((prev_yaw_error > 0.0f && yaw_error < 0.0f) ||
                 (prev_yaw_error < 0.0f && yaw_error > 0.0f));
 
