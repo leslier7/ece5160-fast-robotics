@@ -35,6 +35,7 @@ void stopPID(PIDController& pid);
 float updatePID(PIDController& pid);
 
 float readFrontDist();
+float readKfDist();
 float readSideDist();
 float readYaw();
 

@@ -24,6 +24,8 @@ DistanceData dist_data = { {}, 0};
 
 MotorData motor_data = {{}, 0};
 
+KFData kf_data = {{}, 0};
+
 LowPass lp_theta = {0, 0, 0.4};
 LowPass lp_phi = {0, 0, 0.4};
 
@@ -119,6 +121,11 @@ void collect_motor(MotorData &motor_values){
     motor_values.index = (motor_values.index + 1) % DATA_ARR_SIZE;
 }
 
+void collect_kf(KFData &kf_values){
+    kf_values.values[kf_values.index] = {kf_mu(0, 0), kf_mu(1, 0)};
+    kf_values.index = (kf_values.index + 1) % DATA_ARR_SIZE;
+}
+
 
 bool updateIMU(){
     unsigned long current_time = millis();
@@ -178,16 +185,18 @@ void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu
 }
 
 //Collect only the relevant data for the system.
-void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values){
     collect_time(time_values);
     collect_yaw(yaw_values);
     collect_dist(dist_values);
     collect_motor(motor_values);
+    collect_kf(kf_values);
 }
 
-void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values){
     clearData(time_values);
     clearData(yaw_values);
     clearData(dist_values);
     clearData(motor_values);
+    clearData(kf_values);
 }

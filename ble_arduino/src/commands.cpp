@@ -850,6 +850,10 @@ bool handle_get_drive_data(){
     stopBothMotors();
     abortMotorQueue(true);
 
+    // Stop both sensors while transmitting
+    distanceSensorFront.stopRanging();
+    distanceSensorSide.stopRanging();
+
     EString temp_string = EString();
     int tx_result = -1;
 
@@ -869,7 +873,7 @@ bool handle_get_drive_data(){
         int i = (start + k) % DATA_ARR_SIZE; // chronological order
 
         char value_str[64];
-        snprintf(value_str, sizeof(value_str), "%lu:%.3f:%d:%d:%.4f:%.4f", time_data.values[i], yaw_data.value[i], dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent);
+        snprintf(value_str, sizeof(value_str), "%lu:%.2f:%d:%d:%.2f:%.2f:%.2f:%.2f", time_data.values[i], yaw_data.value[i], dist_data.values[i].front, dist_data.values[i].side, motor_data.values[i].left_percent, motor_data.values[i].right_percent, kf_data.values[i].pos, kf_data.values[i].vel);
 
         // Check if adding this value would exceed MAX_MSG_SIZE
         // Account for comma separator and null terminator
@@ -910,6 +914,8 @@ bool handle_get_drive_data(){
     DEBUG_PRINTLN("Finished sending array");
 
     recording = true; // Resume recording after transmit
-    clearDriveData(time_data, yaw_data, dist_data, motor_data);
+    clearDriveData(time_data, yaw_data, dist_data, motor_data, kf_data);
+    distanceSensorFront.startRanging();  // re-arm after BLE transmission
+    distanceSensorSide.startRanging();
     return true;
 }

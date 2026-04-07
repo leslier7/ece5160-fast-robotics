@@ -41,6 +41,16 @@ struct MotorData {
     int index;
 };
 
+struct KFLog {
+    float pos;
+    float vel;
+};
+
+struct KFData {
+    KFLog values[DATA_ARR_SIZE];
+    int index;
+};
+
 extern TimeData time_data;
 
 extern TemperatureData temp_data;
@@ -56,6 +66,8 @@ extern YawData yaw_data;
 extern float yaw;
 
 extern MotorData motor_data;
+
+extern KFData kf_data;
 
 extern bool recording;
 
@@ -75,11 +87,11 @@ void collect_motor(MotorData &motor_values);
 
 void collectAllData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_data, MotorData &motor_values);
 
-void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values);
+void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values);
 
 void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu_values, DistanceData &dist_values, MotorData &motor_values);
 
-void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values);
+void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values);
 
 // Generic version
 template<typename T, typename V>
