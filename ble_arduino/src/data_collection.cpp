@@ -24,6 +24,8 @@ DistanceData dist_data = { {}, 0};
 
 MotorData motor_data = {{}, 0};
 
+KFData kf_data = {{}, 0};
+
 LowPass lp_theta = {0, 0, 0.4};
 LowPass lp_phi = {0, 0, 0.4};
 
@@ -61,31 +63,34 @@ void collect_temps(TemperatureData &temp_values){
 }
 
 void collect_dist(DistanceData &dist_data){
-    int front_to_log;
+    // Previous prediction code
+    //int front_to_log;
 
-    if (cur_dists.front_updated) {
-        if (cur_dists.front_status == 0) {
-            front_to_log = cur_dists.front;
-        } else if (cur_dists.front_status == 4 && cur_dists.front == 0) {
-            // out of measurable range in short mode
-            front_to_log = 1200;
-        } else {
-            // current update exists but is not usable
-            // fall back to prediction if available, otherwise previous
-            if (pred_dists.front_updated) {
-                front_to_log = pred_dists.front;
-            } else {
-                front_to_log = prev_dists.front;
-            }
-        }
-    } else if (pred_dists.front_updated) {
-        front_to_log = pred_dists.front;
-    } else {
-        // hold the previous logged value rather than injecting -1 into the distance trace
-        front_to_log = dist_data.values[(dist_data.index + DATA_ARR_SIZE - 1) % DATA_ARR_SIZE].front;
-    }
+    // if (cur_dists.front_updated) {
+    //     if (cur_dists.front_status == 0) {
+    //         front_to_log = cur_dists.front;
+    //     } else if (cur_dists.front_status == 4 && cur_dists.front == 0) {
+    //         // out of measurable range in short mode
+    //         front_to_log = 1200;
+    //     } else {
+    //         // current update exists but is not usable
+    //         // fall back to prediction if available, otherwise previous
+    //         if (pred_dists.front_updated) {
+    //             front_to_log = pred_dists.front;
+    //         } else {
+    //             front_to_log = prev_dists.front;
+    //         }
+    //     }
+    // } else if (pred_dists.front_updated) {
+    //     front_to_log = pred_dists.front;
+    // } else {
+    //     // hold the previous logged value rather than injecting -1 into the distance trace
+    //     front_to_log = dist_data.values[(dist_data.index + DATA_ARR_SIZE - 1) % DATA_ARR_SIZE].front;
+    // }
 
-    dist_data.values[dist_data.index].front = front_to_log;
+    dist_data.values[dist_data.index].front = cur_dists.front;
+    
+    
 
     // if(cur_dists.front_updated){
     //     if (cur_dists.front_status == 4 && cur_dists.front == 0){ //Target is out of range
@@ -114,6 +119,11 @@ void collect_dist(DistanceData &dist_data){
 void collect_motor(MotorData &motor_values){
     motor_values.values[motor_values.index] = getCurSpeeds();
     motor_values.index = (motor_values.index + 1) % DATA_ARR_SIZE;
+}
+
+void collect_kf(KFData &kf_values){
+    kf_values.values[kf_values.index] = {kf_mu(0, 0), kf_mu(1, 0)};
+    kf_values.index = (kf_values.index + 1) % DATA_ARR_SIZE;
 }
 
 
@@ -175,16 +185,18 @@ void clearData(TimeData &time_values, TemperatureData &temp_values, IMUData &imu
 }
 
 //Collect only the relevant data for the system.
-void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+void collectDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values){
     collect_time(time_values);
     collect_yaw(yaw_values);
     collect_dist(dist_values);
     collect_motor(motor_values);
+    collect_kf(kf_values);
 }
 
-void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values){
+void clearDriveData(TimeData &time_values, YawData &yaw_values, DistanceData &dist_values, MotorData &motor_values, KFData &kf_values){
     clearData(time_values);
     clearData(yaw_values);
     clearData(dist_values);
     clearData(motor_values);
+    clearData(kf_values);
 }
