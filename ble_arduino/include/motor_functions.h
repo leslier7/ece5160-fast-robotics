@@ -227,7 +227,12 @@ inline bool setBothMotors(float leftMotor, float rightMotor){
     leftMotor  = applyMotorBand(leftMotor);
 
     if (rightMotor == leftMotor && rightMotor != MOTOR_BRAKE_CMD){ // Calibration to make it go straight
-        leftMotor += calibration_factor;
+        if(leftMotor != 100){
+            leftMotor += calibration_factor;
+        } else if (leftMotor == 100){ //if running at 100%, subtract from the right wheel instead of adding to the left
+            rightMotor -= calibration_factor;
+        }
+        
     }
 
     // bool rightReturn = setMotor(RIGHT, rightMotor);
@@ -244,6 +249,10 @@ static void beginJob(const MotorJob& j);
 void startMotorQueue();
 
 void pauseMotorQueue();
+
+bool isMotorQueueBusy();
+
+bool isMotorQueueIdle();
 
 bool startMotorJob(float right_percent, float left_percent, uint32_t duration_ms);
 

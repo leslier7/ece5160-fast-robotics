@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "motor_functions.h"
 #include "pid.h"
+#include "drift.h"
 
 static bool handle_ping();
 static bool handle_send_two_ints();
@@ -28,6 +29,7 @@ static bool handle_set_setpoint();
 static bool handle_start_pid();
 static bool handle_stop_pid();
 static bool handle_get_drive_data();
+static bool handle_do_drift();
 
 void
 handle_command()
@@ -136,6 +138,9 @@ handle_command()
             break;
         case GET_DRIVE_DATA:
             handle_get_drive_data();
+            break;
+        case DO_DRIFT:
+            handle_do_drift();
             break;
         
         /* 
@@ -664,6 +669,8 @@ static bool handle_set_motor_sequence() {
     bool success;
     int jobs_queued = 0;
 
+    abortMotorQueue(true); //Clear the current queue
+
     // Keep reading triplets until we run out of tokens
     while (true) {
         success = robot_cmd.get_next_value(left_percent);
@@ -680,7 +687,9 @@ static bool handle_set_motor_sequence() {
 
         DEBUG_PRINTF("Left percent: %f   Right percent: %f   duration (ms): %d\n", left_percent, right_percent, duration_ms);
 
-        if (!queueMotorJob(right_percent, left_percent, duration_ms)) {
+        
+
+        if (!queueMotorJob(right_percent, left_percent, duration_ms)) { //Shouldn't hit the error state, but still
             DEBUG_PRINTLN("Motor queue full!");
             break;
         }
@@ -754,6 +763,17 @@ bool handle_set_pid_values(){
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
+    #ifdef STUNT
+    if(!alpha_changed && !windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd, imu_pid.alpha, windup_max); //This should never happen
+    } else {
+        changePIDValues(imu_pid, kp, ki, kd, alpha, windup_max); 
+    }
+    #else
     if(!alpha_changed && !windup_changed){
         changePIDValues(pid_controller, kp, ki, kd);
     } else if(alpha_changed && !windup_changed){
@@ -763,7 +783,7 @@ bool handle_set_pid_values(){
     } else {
         changePIDValues(pid_controller, kp, ki, kd, alpha, windup_max); 
     }
-
+    #endif
     return true;
 }
 
@@ -862,7 +882,11 @@ bool handle_get_drive_data(){
 
     // Send setpoint once
     char setpoint_str[32];
+    #ifdef STUNT
+    snprintf(setpoint_str, sizeof(setpoint_str), "setpoint:%.3f", imu_pid.setpoint);
+    #else
     snprintf(setpoint_str, sizeof(setpoint_str), "setpoint:%.3f", pid_controller.setpoint);
+    #endif
     tx_result = tx_characteristic_string.writeValue(setpoint_str);
     DEBUG_PRINT("Sent setpoint packet: ");
     DEBUG_PRINTLN(setpoint_str);
@@ -917,5 +941,60 @@ bool handle_get_drive_data(){
     clearDriveData(time_data, yaw_data, dist_data, motor_data, kf_data);
     distanceSensorFront.startRanging();  // re-arm after BLE transmission
     distanceSensorSide.startRanging();
+    return true;
+}
+
+bool handle_do_drift(){
+    bool success;
+    int bluetooth_drive_time;
+    int bt_break_time;
+    int bt_turn_angle;
+    int bt_angle_zone;
+    float bt_calibration_factor;
+    
+    // char char_arr[MAX_MSG_SIZE];
+
+    // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+
+    success = robot_cmd.get_next_value(bluetooth_drive_time);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_break_time);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_turn_angle);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_angle_zone);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_calibration_factor);
+    if (!success)
+        return false;
+
+    EString temp_string = EString();
+    temp_string.clear();
+    temp_string.append("Doing drift");
+    //temp_string.append(char_arr);
+
+    tx_estring_value.clear();
+    tx_estring_value.append(temp_string.c_str());
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    drive_time = bluetooth_drive_time;
+    break_time = bt_break_time;
+    turn_angle = bt_turn_angle;
+    angle_zone = bt_angle_zone;
+
+    calibration_factor = bt_calibration_factor;
+
+    stopPID(pid_controller);
+    abortMotorQueue(true);
+    startDrift();
+
     return true;
 }

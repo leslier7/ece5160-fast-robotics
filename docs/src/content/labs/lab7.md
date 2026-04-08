@@ -201,3 +201,6 @@ I found that the filter worked pretty well. My PID tuning got a bit messed up fr
     allowfullscreen>
   </iframe>
 </figure>
+
+### Collaborations
+I talked with Immanuel Koshy about some high level content, but mostly worked on my own. I used AI to help format the writeup.

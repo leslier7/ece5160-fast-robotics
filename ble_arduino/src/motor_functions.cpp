@@ -1,8 +1,9 @@
 #include "motor_functions.h"
 #include "globals.h"
 #include "pid.h"
+#include "drift.h"
 
-float calibration_factor = 13.85;
+float calibration_factor = 13.85; //default
 
 static bool motor_queue_enabled = false;
 
@@ -71,6 +72,14 @@ void abortMotorQueue(bool clear_pending) {
   if (clear_pending) motor_q.clear();
 }
 
+bool isMotorQueueBusy() {
+    return motor_queue_enabled;
+}
+
+bool isMotorQueueIdle() {
+    return !motor_queue_enabled;
+}
+
 void setCurSpeeds(float left_percent, float right_percent){
   cur_speeds.left_percent = left_percent;
   cur_speeds.right_percent = right_percent;
@@ -79,7 +88,7 @@ void setCurSpeeds(float left_percent, float right_percent){
 MotorSpeeds getCurSpeeds(){
   if (motor_job.active) {
     return { (float)(motor_job.left_percent), (float)(motor_job.right_percent) };
-  } else if (pid_controller.running){
+  } else if (pid_controller.running || imu_pid.running){
     return {cur_speeds.left_percent, cur_speeds.right_percent};
   } else {
     return { 0.0f, 0.0f };
