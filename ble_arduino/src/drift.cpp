@@ -13,16 +13,27 @@ float prev_yaw_error = 0.0f;
 void startDrift(){
     DriftState = START;
     drift_running = true;
-    initPID(imu_pid, 0.3, 0.03, 0.003, 0.8, readYaw, 1); //Start the turn PID
+    imu_pid.readSensor = readYaw;
+    imu_pid.integral = 0.0f;
+    imu_pid.prev_error = 0.0f;
+    imu_pid.prev_deriv_filt = 0.0f;
+    imu_pid.prev_time_ms = millis();
+    imu_pid.prev_meas = readYaw();
     //setSetpoint(imu_pid, yaw); // Set the ideal yaw to the current yaw
     //TODO tune this
 }
+
+int drive_time = 1700;
+int break_time = 150;
+int turn_angle = 135;
+int angle_zone = 10;
 
 void driftStateTick(){
     switch(DriftState){
         case START:
             if(drift_running){
-                queueMotorJob(100, 100, 850);
+                //queueMotorJob(100, 100, 850);
+                queueMotorJob(100, 100, drive_time);
                 //startMotorJob(100, 100, 850);
                 startMotorQueue();
                 DriftState = TOWARD_WALL;
@@ -36,9 +47,9 @@ void driftStateTick(){
                 DriftState = TOWARD_WALL;
             } else if (isMotorQueueIdle()) {
                 if(yaw < 180){
-                    setSetpoint(imu_pid, yaw+180);
+                    setSetpoint(imu_pid, yaw+turn_angle);
                 } else if (yaw > 180) {
-                    setSetpoint(imu_pid, yaw-180);
+                    setSetpoint(imu_pid, yaw-turn_angle);
                 } else {
                     setSetpoint(imu_pid,0);
                 }
@@ -61,14 +72,14 @@ void driftStateTick(){
             if (yaw_error < -180.0f) yaw_error += 360.0f;
 
             bool crossed_target =
-                fabs(prev_yaw_error) < 45.0f &&
-                fabs(yaw_error) < 45.0f &&
-                ((prev_yaw_error > 0.0f && yaw_error < 0.0f) ||
-                (prev_yaw_error < 0.0f && yaw_error > 0.0f));
+                (prev_yaw_error > 0.0f && yaw_error < 0.0f) ||
+                (prev_yaw_error < 0.0f && yaw_error > 0.0f);
 
-            if (fabs(yaw_error) <= 10.0f || crossed_target) {
+            if (fabs(yaw_error) <= (float)angle_zone || crossed_target) {
                 stopPID(imu_pid);
-                queueMotorJob(100, 100, 850);
+                stopBothMotors();
+                queueMotorJob(-pid_percent, pid_percent, break_time);   // brief brake to shed angular momentum
+                queueMotorJob(100, 100, drive_time);
                 startMotorQueue();
                 DriftState = RETURN;
             } else {

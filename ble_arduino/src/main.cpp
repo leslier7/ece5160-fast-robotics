@@ -194,14 +194,15 @@ loop()
             
             // Collect IMU data
             if(recording){
-                collectDriveData(time_data, yaw_data, dist_data, motor_data);
+                //collectDriveData(time_data, yaw_data, dist_data, motor_data);
 
-                // // Record on a timer
-                // if ((millis() - prev_rec_time) >= 4) { //Record 7.5 seconds of data
-                //     //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
+                // Record on a timer
+                if ((millis() - prev_rec_time) >= 4) { //Record 7.5 seconds of data
+                    //collectAllData(time_data, temp_data, imu_data, dist_data, motor_data); //TODO figure out how to transmit the sample rate more effectivly for PID control and TOF
+                    collectDriveData(time_data, yaw_data, dist_data, motor_data);
                     
-                //     prev_rec_time = millis();
-                // }
+                    prev_rec_time = millis();
+                }
             }
 
             // #ifdef DEBUG_ENABLED

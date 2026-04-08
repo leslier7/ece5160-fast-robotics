@@ -763,6 +763,17 @@ bool handle_set_pid_values(){
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
 
+    #ifdef STUNT
+    if(!alpha_changed && !windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd);
+    } else if(alpha_changed && !windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd, alpha);
+    } else if(!alpha_changed && windup_changed){
+        changePIDValues(imu_pid, kp, ki, kd, imu_pid.alpha, windup_max); //This should never happen
+    } else {
+        changePIDValues(imu_pid, kp, ki, kd, alpha, windup_max); 
+    }
+    #else
     if(!alpha_changed && !windup_changed){
         changePIDValues(pid_controller, kp, ki, kd);
     } else if(alpha_changed && !windup_changed){
@@ -772,7 +783,7 @@ bool handle_set_pid_values(){
     } else {
         changePIDValues(pid_controller, kp, ki, kd, alpha, windup_max); 
     }
-
+    #endif
     return true;
 }
 
@@ -867,7 +878,11 @@ bool handle_get_drive_data(){
 
     // Send setpoint once
     char setpoint_str[32];
+    #ifdef STUNT
+    snprintf(setpoint_str, sizeof(setpoint_str), "setpoint:%.3f", imu_pid.setpoint);
+    #else
     snprintf(setpoint_str, sizeof(setpoint_str), "setpoint:%.3f", pid_controller.setpoint);
+    #endif
     tx_result = tx_characteristic_string.writeValue(setpoint_str);
     DEBUG_PRINT("Sent setpoint packet: ");
     DEBUG_PRINTLN(setpoint_str);
@@ -925,9 +940,35 @@ bool handle_get_drive_data(){
 
 bool handle_do_drift(){
     bool success;
+    int bluetooth_drive_time;
+    int bt_break_time;
+    int bt_turn_angle;
+    int bt_angle_zone;
+    float bt_calibration_factor;
+    
     // char char_arr[MAX_MSG_SIZE];
 
     // snprintf(char_arr, MAX_MSG_SIZE, "sp:%f", setpoint);
+
+    success = robot_cmd.get_next_value(bluetooth_drive_time);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_break_time);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_turn_angle);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_angle_zone);
+    if (!success)
+        return false;
+
+    success = robot_cmd.get_next_value(bt_calibration_factor);
+    if (!success)
+        return false;
 
     EString temp_string = EString();
     temp_string.clear();
@@ -937,6 +978,13 @@ bool handle_do_drift(){
     tx_estring_value.clear();
     tx_estring_value.append(temp_string.c_str());
     tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    drive_time = bluetooth_drive_time;
+    break_time = bt_break_time;
+    turn_angle = bt_turn_angle;
+    angle_zone = bt_angle_zone;
+
+    calibration_factor = bt_calibration_factor;
 
     stopPID(pid_controller);
     abortMotorQueue(true);
