@@ -182,6 +182,17 @@ While my stunt did work, there are some things that could have been improved. Th
 
 #### Bloopers
 
+<figure style="max-width: 720px; margin: 1rem 0;">
+  <iframe
+    width="100%"
+    height="405"
+    src="https://www.youtube-nocookie.com/embed/cu3Sz0E2QtI"
+    title="Lab 8 Bloopers"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+</figure>
 
-**TODO**
-<!-- TODO: Add blooper video -->
+### Collaborations
+I talked with Immanuel Koshy about some high level content, but mostly worked on my own. I used AI to help format the writeup.
