@@ -168,6 +168,10 @@ float readFrontDist() {
     return (float)prev_dists.front; 
 }
 
+float readKfDist() {
+    return kf_mu(0, 0);
+}
+
 float readSideDist()  { 
     if(cur_dists.side_updated){
         return (float)cur_dists.side;

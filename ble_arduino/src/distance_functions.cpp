@@ -3,10 +3,16 @@
 #include "distance_functions.h"
 #include "debug.h"
 #include <Wire.h>
+#include <BasicLinearAlgebra.h>
+using namespace BLA;
 
 Distances cur_dists = {-1, -1};
 Distances prev_dists = {-1, -1};
 Distances pred_dists = {-1, -1};
+
+Matrix<2,1> kf_mu = {0.0f, 0.0f};
+Matrix<2,2> kf_sigma = {400.0f, 0.0f, 0.0f, 62500.0f};
+
 
 bool setupSensor(SFEVL53L1X &sensor, bool alternate){
 
@@ -112,3 +118,4 @@ Distances predictDistances(Distances &cur_dists, Distances &prev_dists){
 
     return pred;
 }
+

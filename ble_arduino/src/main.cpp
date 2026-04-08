@@ -5,6 +5,7 @@
 #include "RobotCommand.h"
 #include <ArduinoBLE.h>
 
+#include <Wire.h>
 #include "debug.h"
 #include "commands.h"
 #include "ble_config.h"
@@ -72,7 +73,7 @@ setup()
 
     #ifdef TOF
     //ToF PID
-    initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readFrontDist, 1);
+    initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readKfDist, 1);
     #elif  defined(IMU)
     //ToF PID
     initPID(pid_controller, 0.3, 0.03, 0.003, 0.8, readYaw, 1);
@@ -123,6 +124,7 @@ setup()
 
 static unsigned long prev_debug_ms = 0;
 
+
 void
 loop()
 {   
@@ -148,7 +150,10 @@ loop()
                 DEBUG_PRINTF("\nYaw value: %f  Front Sensor value: %d  Front Sensor status: %d", yaw, cur_dists.front, cur_dists.front_status);
             }
 
-            pred_dists = predictDistances(cur_dists, prev_dists);
+            //pred_dists = predictDistances(cur_dists, prev_dists);
+
+            kf(kf_mu, kf_sigma, {-commanded_percent}, {(float)cur_dists.front});
+
 
             updateYaw(&yaw, myICM);
 
@@ -194,7 +199,11 @@ loop()
             
             // Collect IMU data
             if(recording){
+<<<<<<< HEAD
                 //collectDriveData(time_data, yaw_data, dist_data, motor_data);
+=======
+                collectDriveData(time_data, yaw_data, dist_data, motor_data, kf_data);
+>>>>>>> main
 
                 // Record on a timer
                 if ((millis() - prev_rec_time) >= 4) { //Record 7.5 seconds of data
