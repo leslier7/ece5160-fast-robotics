@@ -24,3 +24,4 @@ class CMD(Enum):
     STOP_PID = 20
     GET_DRIVE_DATA = 21
     DO_DRIFT = 22
+    COLLECT_MAPPING_DATA = 23
