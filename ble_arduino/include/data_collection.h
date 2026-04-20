@@ -10,6 +10,7 @@
 #include "motor_functions.h"
 
 #define DATA_ARR_SIZE 1500
+#define MAPPING_POINTS 14
 
 struct TimeData {
     unsigned long values[DATA_ARR_SIZE];
@@ -51,6 +52,11 @@ struct KFData {
     int index;
 };
 
+struct MappingData {
+    float yaw;
+    float distance;
+};
+
 extern TimeData time_data;
 
 extern TemperatureData temp_data;
@@ -68,6 +74,8 @@ extern float yaw;
 extern MotorData motor_data;
 
 extern KFData kf_data;
+
+extern MappingData map_data[MAPPING_POINTS];
 
 extern bool recording;
 

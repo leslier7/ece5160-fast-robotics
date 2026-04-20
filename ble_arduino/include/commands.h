@@ -35,7 +35,8 @@ enum CommandTypes
     START_PID,
     STOP_PID,
     GET_DRIVE_DATA,
-    DO_DRIFT
+    DO_DRIFT,
+    COLLECT_MAPPING_DATA
 };
 
 void handle_command();

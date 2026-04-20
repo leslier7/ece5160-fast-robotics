@@ -26,6 +26,8 @@ MotorData motor_data = {{}, 0};
 
 KFData kf_data = {{}, 0};
 
+MappingData map_data[MAPPING_POINTS];
+
 LowPass lp_theta = {0, 0, 0.4};
 LowPass lp_phi = {0, 0, 0.4};
 
