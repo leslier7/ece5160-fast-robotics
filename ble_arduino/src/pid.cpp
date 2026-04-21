@@ -123,8 +123,8 @@ float updatePID(PIDController& pid){
 
     float output = p_term + i_term + d_term;
 
-    bool pos_sat = (output >= 40.0f && error > 0.0f);
-    bool neg_sat = (output <= -40.0f && error < 0.0f);
+    bool pos_sat = (output >= 60.0f && error > 0.0f);
+    bool neg_sat = (output <= -60.0f && error < 0.0f);
 
     //Solving for windup. Only update the integral term if the output isnt saturated
     if(!(pos_sat || neg_sat)){
