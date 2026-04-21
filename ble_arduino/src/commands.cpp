@@ -30,6 +30,7 @@ static bool handle_start_pid();
 static bool handle_stop_pid();
 static bool handle_get_drive_data();
 static bool handle_do_drift();
+static bool handle_collect_mapping_data();
 
 void
 handle_command()
@@ -996,5 +997,10 @@ bool handle_do_drift(){
     abortMotorQueue(true);
     startDrift();
 
+    return true;
+}
+
+bool handle_collect_mapping_data(){
+    
     return true;
 }
