@@ -50,6 +50,9 @@ FastRobotics_ble/
 
 .DS_Store
 
+data/
+Lab*Data/
+
 .idea/
 .pio/
 
