@@ -6,7 +6,10 @@
 #include "motor_functions.h"
 #include "pid.h"
 #include "drift.h"
+#include "mapping.h"
+#include "imu_functions.h"
 
+static void send_mapping_data();
 static bool handle_ping();
 static bool handle_send_two_ints();
 static bool handle_send_three_floats();
@@ -143,8 +146,11 @@ handle_command()
         case DO_DRIFT:
             handle_do_drift();
             break;
-        
-        /* 
+        case COLLECT_MAPPING_DATA:
+            handle_collect_mapping_data();
+            break;
+
+        /*
          * The default case may not capture all types of invalid commands.
          * It is safer to validate the command string on the central device (in python)
          * before writing to the characteristic.
@@ -1001,6 +1007,63 @@ bool handle_do_drift(){
 }
 
 bool handle_collect_mapping_data(){
-    
+    stopPID(pid_controller);
+    abortMotorQueue(true);
+    startMapping();
+
+    // Block here while the state machine runs, keeping BLE and yaw alive
+    static unsigned long prev_status_ms = 0;
+    while(mapping_running) {
+        updateYaw(&yaw, myICM);
+        mappingStateTick();
+        BLE.poll();
+
+        if (millis() - prev_status_ms >= 500) {
+            const char* state_str =
+                (MappingState == MAPPING_TURN)    ? "TURN" :
+                (MappingState == MAPPING_COLLECT) ? "COLLECT" : "START";
+            float yaw_error = mapping_pid.setpoint - yaw;
+            if (yaw_error >  180.0f) yaw_error -= 360.0f;
+            if (yaw_error < -180.0f) yaw_error += 360.0f;
+            char status[64];
+            snprintf(status, sizeof(status), "STATUS:%s:y=%.1f:sp=%.1f:e=%.1f:pts=%d",
+                     state_str, yaw, mapping_pid.setpoint, yaw_error, points_collected);
+            tx_characteristic_string.writeValue(status);
+            prev_status_ms = millis();
+        }
+    }
+
+    stopBothMotors();
+    send_mapping_data();
     return true;
+}
+
+static void send_mapping_data(){
+    EString temp_string = EString();
+    int tx_result = -1;
+
+    for(int i = 0; i < points_collected; i++){
+        char value_str[32];
+        snprintf(value_str, sizeof(value_str), "%.3f:%.1f", map_data[i].yaw, map_data[i].distance);
+
+        int needed_len = strlen(value_str) + (temp_string.get_length() > 0 ? 1 : 0);
+        if (temp_string.get_length() + needed_len >= MAX_MSG_SIZE - 1) {
+            tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+            delay(10);
+            temp_string.clear();
+        }
+
+        if (temp_string.get_length() > 0) {
+            temp_string.append(",");
+        }
+        temp_string.append(value_str);
+    }
+
+    if (temp_string.get_length() > 0) {
+        tx_result = tx_characteristic_string.writeValue(temp_string.c_str());
+        delay(10);
+    }
+
+    tx_characteristic_string.writeValue("end");
+    DEBUG_PRINTLN("Finished sending mapping data");
 }

@@ -15,6 +15,7 @@
 #include "motor_functions.h"
 #include "pid.h"
 #include "drift.h"
+#include "mapping.h"
 
 //////////// Global Variables ////////////
 SFEVL53L1X distanceSensorFront;
@@ -61,7 +62,7 @@ setup()
     bothSetup = setupBothSensors(distanceSensorFront, distanceSensorSide);
 
     //Only block startup with ToF
-    #ifdef TOF
+    #if defined(TOF) || defined(MAPPING)
     if(!bothSetup){
         digitalWrite(LED_BUILTIN, HIGH);
         DEBUG_PRINTF("Failed to start both distance sensors");
