@@ -123,8 +123,8 @@ float updatePID(PIDController& pid){
 
     float output = p_term + i_term + d_term;
 
-    bool pos_sat = (output >= 60.0f && error > 0.0f);
-    bool neg_sat = (output <= -60.0f && error < 0.0f);
+    bool pos_sat = (output >= 100.0f && error > 0.0f);
+    bool neg_sat = (output <= -100.0f && error < 0.0f);
 
     //Solving for windup. Only update the integral term if the output isnt saturated
     if(!(pos_sat || neg_sat)){
@@ -151,7 +151,7 @@ float updatePID(PIDController& pid){
 
     // Clamp output to motor range
     //TODO make this full range later, but start slow
-    output = constrain(output, -60.0f, 60.0f);
+    output = constrain(output, -100.0f, 100.0f);
     #ifdef DEBUG_ENABLED
     DEBUG_PRINTF("p: %.3f, i: %.3f, d: %.3f, out: %.3f\n", p_term, i_term, d_term, output);
     #endif
