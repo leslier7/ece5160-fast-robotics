@@ -23,7 +23,7 @@ void startMapping(){
     MappingState = MAPPING_START;
     points_collected = 0;
     mapping_pid.readSensor = readYaw;
-    changePIDValues(mapping_pid, 2.1, 0.35, 0.03, 0.5, 90); //7.0 worked for non tapped wheels
+    changePIDValues(mapping_pid, 9.0, 0.35, 0.03, 0.5, 90); //7.0 worked for non tapped wheels
 
     mapping_pid.integral = 0.0f;
     mapping_pid.prev_error = 0.0f;
