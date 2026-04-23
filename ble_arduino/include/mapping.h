@@ -3,8 +3,6 @@
 
 #include "pid.h"
 
-#define MAX_MAP_POINTS 28
-
 enum MappingStates{
     MAPPING_START,
     MAPPING_TURN,

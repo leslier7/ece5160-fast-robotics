@@ -8,8 +8,7 @@
 bool mapping_running = false;
 int points_collected = 0;
 float start_yaw;
-static float accumulated_rotation = 0.0f;
-static float prev_collect_yaw = 0.0f;
+static const float STEP_DEG = 360.0f / MAPPING_POINTS;
 
 static const float STEADY_STATE_THRESH_DEG = 5.0f;   // degrees
 static const unsigned long STEADY_STATE_DURATION_MS = 200; // ms below threshold
@@ -23,7 +22,7 @@ void startMapping(){
     MappingState = MAPPING_START;
     points_collected = 0;
     mapping_pid.readSensor = readYaw;
-    changePIDValues(mapping_pid, 9.0, 0.35, 0.03, 0.5, 90); //7.0 worked for non tapped wheels
+    changePIDValues(mapping_pid, 7.0, 3.0, 0.03, 0.5, 90); //7.0 worked for non tapped wheels
 
     mapping_pid.integral = 0.0f;
     mapping_pid.prev_error = 0.0f;
@@ -32,8 +31,6 @@ void startMapping(){
     mapping_pid.prev_meas = readYaw();
     mapping_pid.running = true;
     updateYaw(&start_yaw, myICM); // Make sure to collect up to date yaw
-    accumulated_rotation = 0.0f;
-    prev_collect_yaw = start_yaw;
     mapping_running = true;
 }
 
@@ -73,20 +70,15 @@ void mappingStateTick(){
         case MAPPING_COLLECT: {
             int distance = getSensorDistance(distanceSensorFront);
             if (distance != -1){ // Valid measurement collected
-                map_data[points_collected].yaw = yaw; // use global yaw, already fresh from blocking loop
+                float normalized_yaw = start_yaw - yaw;
+                if (normalized_yaw < 0.0f) normalized_yaw += 360.0f;
+                map_data[points_collected].yaw = normalized_yaw;
                 map_data[points_collected].distance = distance;
 
-                // Accumulate actual rotation with wrap handling
-                float delta = yaw - prev_collect_yaw;
-                if (delta > 180.0f)  delta -= 360.0f;
-                if (delta < -180.0f) delta += 360.0f;
-                accumulated_rotation += fabs(delta);
-                prev_collect_yaw = yaw;
-
-                setSetpoint(mapping_pid, yaw + 15); // Move in smaller increments to get more points
+                setSetpoint(mapping_pid, start_yaw - points_collected * STEP_DEG);
                 startPID(mapping_pid);
                 points_collected++;
-                if (accumulated_rotation >= 360.0f || points_collected >= MAX_MAP_POINTS) {
+                if (points_collected >= MAPPING_POINTS) {
                     MappingState = MAPPING_END;
                     return;
                 }

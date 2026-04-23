@@ -10,7 +10,7 @@
 #include "motor_functions.h"
 
 #define DATA_ARR_SIZE 1500
-#define MAPPING_POINTS 14
+#define MAPPING_POINTS 36
 
 struct TimeData {
     unsigned long values[DATA_ARR_SIZE];
