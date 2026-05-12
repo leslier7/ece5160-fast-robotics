@@ -1,6 +1,6 @@
 ---
 title: "Lab 9: Mapping"
-date: 2026-04-15
+date: 2026-04-8
 description: "Mapping a static room"
 cover: "../../assets/lab9-cover.png"
 ---
