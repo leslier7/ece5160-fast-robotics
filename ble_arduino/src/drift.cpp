@@ -33,7 +33,8 @@ void driftStateTick(){
         case START:
             if(drift_running){
                 //queueMotorJob(100, 100, 850);
-                queueMotorJob(100, 100, drive_time);
+                //queueMotorJob(100, 100, drive_time); // Original version
+                queueMotorJob(50, 50, drive_time); // Robot day version (slower)
                 //startMotorJob(100, 100, 850);
                 startMotorQueue();
                 DriftState = TOWARD_WALL;
@@ -79,7 +80,8 @@ void driftStateTick(){
                 stopPID(imu_pid);
                 stopBothMotors();
                 queueMotorJob(-pid_percent, pid_percent, break_time);   // brief brake to shed angular momentum
-                queueMotorJob(100, 100, drive_time);
+                //queueMotorJob(100, 100, drive_time); // Original version
+                queueMotorJob(50, 50, drive_time); // Robot day version (slower)
                 startMotorQueue();
                 DriftState = RETURN;
             } else {

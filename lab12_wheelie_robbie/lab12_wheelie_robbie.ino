@@ -33,10 +33,10 @@
 //    C  = [[1.0, 0.0]]
 //    sigma1=3 deg, sigma2=15 deg/s, sigma3=2 deg
 //
-//  IMU Pitch Convention (current_pitch = roll - 90):
-//    Flat on ground  →  current_pitch ≈ -90 deg
-//    Upright/wheelie →  current_pitch ≈   0 deg
-//    Balance setpoint = 0.0 deg (tunable via SP:)
+//  IMU Pitch Convention (complementary filter):
+//    Flat on ground  →  current_pitch ≈   0 deg
+//    Upright/wheelie →  current_pitch ≈  82 deg
+//    Balance setpoint = 82.0 deg (tunable via SP:)
 // ============================================================
 
 #include "ICM_20948.h"
@@ -57,6 +57,12 @@ using namespace BLA;
 #define BLE_UUID_TX_FLOAT     "27616294-3063-4ecc-b60b-3470ddef2938"
 
 #define AD0_VAL  1
+
+// ========================
+//    GYRO AXIS SELECTION
+//    If pitch_rate is wrong sign when car tips forward, flip to -gyrX() or try gyrY()
+// ========================
+#define GYRO_AXIS  (myICM.gyrY())   // change to gyrX() or -gyrY() if needed
 
 // ========================
 //    MOTOR PINS  (from motor_functions.h)
@@ -85,15 +91,15 @@ int           log_idx  = 0;
 //      Kd=0.08 → at 100 deg/s rate → 8 PWM  (KF rate is smooth, so Kd can be large)
 //      Ki=0.0  → start without integral to avoid windup during tuning
 // ========================
-float Kp           =  4.0f;
-float Ki           =  0.0f;
-float Kd           =  0.08f;
-float SETPOINT_DEG =  0.0f;   // 0 = upright in corrected frame; tune ±5 deg as needed
+float Kp           =  7.00f;
+float Ki           =  0.00f;
+float Kd           =  1.5f;
+float SETPOINT_DEG = 86.82f;   // upright in complementary-filter frame; tune as needed
 bool  windup_on    = true;
 float WINDUP_LIMIT = 200.0f;
 
 #define RUN_DURATION_MS   15000   // hard safety timeout (ms)
-#define FALLEN_ANGLE      (-60.0f) // pitch below this = fallen, abort (e.g. -60 deg)
+#define FALLEN_ANGLE      (20.0f)  // pitch below this = fallen, abort (new frame: flat≈0, upright≈82)
 #define BALANCE_WINDOW    (35.0f)  // only run PID if |error| < this (deg from setpoint)
 
 // ========================
@@ -113,13 +119,13 @@ int   POP_BACK_PWM   = 255;    // reverse PWM during back phase
 //    alpha1=5.36, alpha2=45.0, DT=0.0177s
 //    Tunable at runtime via SET_GAINS S1/S2/S3
 // ========================
-float kf_sigma1 =  3.0f;   // pitch process noise (deg)
-float kf_sigma2 = 15.0f;   // pitch-rate process noise (deg/s)
-float kf_sigma3 =  2.0f;   // DMP measurement noise (deg)
+float kf_sigma1 = 50.0f;   // pitch process noise (deg)      — high = trust DMP more
+float kf_sigma2 = 50.0f;   // pitch-rate process noise (deg/s)
+float kf_sigma3 =  1.0f;   // DMP measurement noise (deg)    — low  = trust DMP more
 
 // Fixed model params — from sysID (do not change at runtime)
-const float KF_ALPHA2 = 5.36f;   // deg/s^2 per deg
-const float KF_ALPHA1 = 45.0f;   // deg/s^2 per unit-u
+const float KF_ALPHA1 = 4.00f;   // deg/s^2 per deg  (gravity)
+const float KF_ALPHA2 = 30.0f;   // deg/s^2 per unit-u (motor torque)
 const float KF_DT     = 0.0177f; // s
 
 // KF matrices (computed once in build_kf_matrices())
@@ -183,8 +189,10 @@ unsigned long run_start_time   = 0;
 // ========================
 //    SENSOR STATE
 // ========================
-float         current_pitch = 0.0f;   // corrected pitch: flat=-90, upright=0
+float         current_pitch = 0.0f;   // complementary filter pitch: flat≈0, upright≈82
 bool          imu_updated   = false;
+float         gyro_pitch    = 0.0f;
+unsigned long last_imu_time = 0;
 
 // ========================
 //    PID STATE
@@ -227,8 +235,8 @@ void build_kf_matrices() {
 
 void kf_init(float pitch_deg) {
     kf_mu    = {pitch_deg, 0.0f};
-    kf_sigma = {5.0f, 0.0f,
-                0.0f, 5.0f};
+    kf_sigma = {25.0f, 0.0f,
+                 0.0f, 25.0f};
     kf_ready = true;
 }
 
@@ -300,8 +308,9 @@ void drive_backward(int speed) {
 void drive_pid_output(float pid_out) {
     int speed = (int)fabsf(pid_out);
     if (speed < 1) { stop_motors(); return; }
-    if (pid_out > 0) drive_forward(speed);
-    else             drive_backward(speed);
+    //if (speed < 40) speed = 40;   //Adding a deadzone to help motors get started
+    if (pid_out > 0) drive_backward(speed);
+    else             drive_forward(speed);
 }
 
 // ========================
@@ -313,7 +322,7 @@ float run_pid(float pitch_kf, float pitchrate_kf, unsigned long now) {
     float error = SETPOINT_DEG - pitch_kf;
 
     // Safety: if car has fallen, return 0 so caller can abort
-    if (pitch_kf < FALLEN_ANGLE) return 0.0f;
+    if (pitch_kf < FALLEN_ANGLE || pitch_kf > 180 - FALLEN_ANGLE) return 0.0f;
 
     // If outside balance window don't wind up integral
     if (fabsf(error) > BALANCE_WINDOW) {
@@ -364,6 +373,7 @@ bool init_dmp() {
     myICM.begin(Wire, AD0_VAL);
     if (myICM.status != ICM_20948_Stat_Ok) return false;
     Serial.println("IMU started correctly");
+    myICM.startupDefault();   // enable raw accel + gyro for complementary filter
     bool success = true;
     success &= (myICM.initializeDMP()                                             == ICM_20948_Stat_Ok);
     delay(500);
@@ -376,11 +386,26 @@ bool init_dmp() {
     return success;
 }
 
-// Returns true if a fresh reading was obtained this call.
-// Pitch convention: flat on ground ≈ -90 deg, upright (wheelie) ≈ 0 deg
+// Complementary filter pitch.
+// Flat on ground ≈ 0 deg, upright/wheelie ≈ 82 deg, upside-down ≈ ±180 deg.
+// Returns true if a fresh DMP quaternion was read this call.
 bool read_dmp_pitch() {
-    icm_20948_DMP_data_t data;
+    unsigned long now = millis();
     bool got_data = false;
+
+    // ── Raw gyro integration (runs every call for high-rate rate estimate) ──
+    if (myICM.dataReady()) {
+        myICM.getAGMT();
+        float rate = GYRO_AXIS;   // deg/s on selected axis
+        float dt_s = (last_imu_time == 0) ? 0.0f
+                                          : (float)(now - last_imu_time) / 1000.0f;
+        if (dt_s > 0.0f && dt_s < 0.1f)
+            gyro_pitch += rate * dt_s;
+        last_imu_time = now;
+    }
+
+    // ── DMP quaternion → absolute pitch (asin avoids atan2 wraparound at ±90 deg) ──
+    icm_20948_DMP_data_t data;
     do {
         myICM.readDMPdataFromFIFO(&data);
         if (myICM.status == ICM_20948_Stat_Ok ||
@@ -390,14 +415,25 @@ bool read_dmp_pitch() {
                 double q2 = ((double)data.Quat6.Data.Q2) / 1073741824.0;
                 double q3 = ((double)data.Quat6.Data.Q3) / 1073741824.0;
                 double q0 = sqrt(max(0.0, 1.0 - q1*q1 - q2*q2 - q3*q3));
-                double t0  = +2.0 * (q0*q1 + q2*q3);
-                double t1  = +1.0 - 2.0*(q1*q1 + q2*q2);
-                double roll = atan2(t0, t1) * 180.0 / PI;
-                current_pitch = (float)(roll - 90.0);   // flat=-90, upright=0
+
+                // asin-based pitch: flat≈0, upright≈90 (no wraparound issue)
+                // double sinp = 2.0 * (q0*q2 - q3*q1);
+                // sinp = constrain((double)sinp, -1.0, 1.0);
+                // float dmp_pitch = (float)(asin(sinp) * 180.0 / PI);
+
+                double sinp = 2.0 * (q0*q2 - q3*q1);
+                double cosp = 1.0 - 2.0 * (q2*q2 + q1*q1);
+                float dmp_pitch = (float)(atan2(sinp, cosp) * 180.0 / PI);
+
+                // Complementary filter: gyro short-term, DMP long-term
+                current_pitch = 0.98f * gyro_pitch + 0.02f * dmp_pitch;
+                gyro_pitch    = current_pitch;   // re-sync gyro integrator
+
                 got_data = true;
             }
         }
     } while (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail);
+
     return got_data;
 }
 
@@ -481,7 +517,7 @@ void loop() {
     unsigned long now = millis();
 
     // KF update runs for any active state (predict every loop, update when DMP fires)
-    if (robot_state != STATE_IDLE && kf_ready) {
+    if (kf_ready) {   // only step when KF is initialised
         float u_norm = (log_idx > 0) ? ((float)log_pwm[log_idx - 1] / 255.0f) : 0.0f;
         kf_step(u_norm, current_pitch, imu_updated);
     }
@@ -503,7 +539,14 @@ void loop() {
             }
 
             if (!kf_ready) {
-                if (imu_updated) kf_init(current_pitch);
+                // Wait until car is actually upright before engaging KF/PID
+                if (imu_updated && current_pitch > 50.0f) {
+                    kf_init(current_pitch);
+                    reset_pid_state();
+                    prev_pid_time = millis();
+                    Serial.print("KF init at pitch="); Serial.println(current_pitch);
+                }
+                stop_motors();
                 break;
             }
 
@@ -511,7 +554,7 @@ void loop() {
             float vk = kf_pitchrate();
 
             // Safety: if car has fallen abort
-            if (pk < FALLEN_ANGLE) {
+            if (pk < FALLEN_ANGLE  || pk > 180 - FALLEN_ANGLE) {
                 stop_motors();
                 robot_state = STATE_IDLE;
                 Serial.println("Fallen — stopped.");
@@ -607,11 +650,10 @@ void loop() {
 
             float pk = kf_ready ? kf_pitch() : current_pitch;
 
-            // Hand off when pitch exceeds handoff angle
-            // (pitch rises from ~-90 toward 0; HANDOFF_ANGLE e.g. -35 means ≈55 deg from flat)
-            float handoff_threshold = SETPOINT_DEG - HANDOFF_ANGLE;  // e.g. 0 - 55 = -35
-            if (pk >= handoff_threshold) {
+            // Hand off when pitch rises past HANDOFF_ANGLE (new frame: flat≈0, upright≈82)
+            if (pk >= HANDOFF_ANGLE) {
                 reset_pid_state();
+                prev_pid_time = millis();
                 robot_state = STATE_BALANCING;
                 Serial.print("Handoff! pitch="); Serial.println(pk);
             }
@@ -645,7 +687,7 @@ void loop() {
             float pk = kf_pitch();
             float vk = kf_pitchrate();
 
-            if (pk < FALLEN_ANGLE) {
+            if (pk < FALLEN_ANGLE || pk > 180 - FALLEN_ANGLE) {
                 stop_motors();
                 robot_state = STATE_IDLE;
                 Serial.println("Fallen after pop — stopped.");
@@ -687,6 +729,11 @@ void loop() {
             Serial.println("Transfer complete.");
         }
     }
+    // Serial.print("Pitch: ");
+    // Serial.println(current_pitch);
+
+    // Serial.print("KF Pitch: ");
+    // Serial.println(kf_pitchrate());
 }
 
 // ========================
@@ -707,6 +754,8 @@ void handle_command(BLEDevice central, BLECharacteristic characteristic) {
             last_ble_check = millis();
             reset_pid_state();
             kf_ready       = false;
+            gyro_pitch     = current_pitch;
+            last_imu_time  = 0;
             is_sending_run = false;
             robot_state    = STATE_BALANCE;
             Serial.println(">>> Phase A: BALANCE <<<");
@@ -725,10 +774,11 @@ void handle_command(BLEDevice central, BLECharacteristic characteristic) {
             last_ble_check   = millis();
             reset_pid_state();
             
-            // START KF IMMEDIATELY! 
-            // This allows the math to track the car during the flip
-            kf_init(current_pitch); 
-            
+            // Init KF immediately so it tracks the car during the flip
+            kf_init(current_pitch);
+            gyro_pitch     = current_pitch;
+            last_imu_time  = 0;
+
             is_sending_run   = false;
             robot_state      = STATE_POP_DRIVE;
             Serial.println(">>> Phase B: POP SEQUENCE <<<");
